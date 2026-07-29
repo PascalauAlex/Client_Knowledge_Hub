@@ -1,0 +1,10 @@
+{
+  "state": {
+    "user": {
+      "username": "pascalaualex63@gmail.com"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwiZXhwIjoxNzg1MjU5OTQyfQ.RJ0cDrMGGO5r3slb05iiwRbTs5vlc_caPK6b56YUiGU",
+    "isAuthenticated": true
+  },
+  "version": 0
+}

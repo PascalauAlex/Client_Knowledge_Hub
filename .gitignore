@@ -1,0 +1,13 @@
+.env
+**/.env
+
+.idea/
+backend/documents
+
+venv/
+env/
+**/__pycache__/
+*.pyc
+
+backend/static/profile_pics/
+static/profile_pics/
