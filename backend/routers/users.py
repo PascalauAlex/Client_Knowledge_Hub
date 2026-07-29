@@ -25,7 +25,7 @@ from schemas import (
 )
 from sqlalchemy import delete as sql_delete
 from datetime import UTC, datetime
-from utils.image_utils import process_profile_image, delete_profile_image_s3, upload_profile_image_s3, create_presigned_url
+from utils.image_utils import process_profile_image, delete_document_s3, upload_file_s3, create_presigned_url
 
 router = APIRouter()
 
@@ -266,7 +266,7 @@ async def upload_profile_picture(file: UploadFile, user_id:int , db: Annotated[A
         )
     #Upload to S3 (also run in thread pool, via wrapper)
     try:
-        await upload_profile_image_s3(processed_bytes, new_file_name)
+        await upload_file_s3(processed_bytes, new_file_name)
     except ClientError as err:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -281,7 +281,7 @@ async def upload_profile_picture(file: UploadFile, user_id:int , db: Annotated[A
     await db.refresh(current_user)
 
     if old_file:
-        await delete_profile_image_s3(old_file)
+        await delete_document_s3(old_file)
     return current_user
 
 
@@ -307,7 +307,7 @@ async def delete_profile_picture(user_id : int ,
     await db.commit()
     await db.refresh(current_user)
 
-    await delete_profile_image_s3(old_filename)
+    await delete_document_s3(old_filename)
 
     return current_user
 
@@ -327,7 +327,7 @@ async def delete_user(current_user: CurrentUser,
     await db.commit()
 
     if profile_pic:
-        await delete_profile_image_s3(profile_pic)
+        await delete_document_s3(profile_pic)
 
     return {"message":"User was deleted successfully"}
 

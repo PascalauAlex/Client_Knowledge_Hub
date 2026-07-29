@@ -35,5 +35,8 @@ async def send_password_reset_email(to_email: str, username: str, token: str) ->
     plain_text = f"""Hi {username},
     You requested to reset your password. Click on the following link, to set a new password:\n
     {reset_url}"""
+    template = templates.env.get_template("reset_password_tempalte.html")
+    html_content =template.render(reset_url=reset_url, username=username)
 
-    await send_email(to=to_email, plain_text=plain_text,subject="Reset token",html_content="")
+
+    await send_email(to=to_email, plain_text=plain_text,subject="Reset token",html_content=html_content)

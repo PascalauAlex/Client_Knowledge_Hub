@@ -1,3 +1,4 @@
+from botocore.exceptions import ClientError
 from pydantic import Field
 from fastapi import APIRouter, status, UploadFile, Depends, HTTPException
 from typing import Annotated
@@ -11,6 +12,7 @@ from utils.auth import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.documents_utils import process_document, delete_document_from_disk, ACCEPTED_MIME
 from database import get_db
+from utils.image_utils import upload_file_s3, delete_document_s3, create_presigned_url
 
 router = APIRouter()
 
@@ -28,7 +30,7 @@ async def upload_document(file: UploadFile,
 
     accepted_extensions = tuple(ACCEPTED_MIME.values())
 
-    if not file.filename.endswith(accepted_extensions):
+    if not file.filename or not file.filename.endswith(accepted_extensions):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"The file extensions must be in {accepted_extensions}"
@@ -39,7 +41,7 @@ async def upload_document(file: UploadFile,
     if client is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid client id"
+            detail="No client id"
         )
     if client.created_by_id != current_user.id:
         raise HTTPException(
@@ -53,13 +55,22 @@ async def upload_document(file: UploadFile,
             detail="The size of the file cannot be bigger than 100 MB"
         )
 
-    filename = await run_in_threadpool(process_document,content)
+    processed_file ,filename = await run_in_threadpool(process_document,content)
 
     if filename is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The file must have the following extensions: (.pdf, .doc, .docx, .xlsx, .csv)"
         )
+
+    try:
+        s3_upload = await upload_file_s3(processed_file,filename)
+    except ClientError as err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error while uploading to S3 {err}"
+        ) from err
+
 
     new_document = models.Document(
         name=name,
@@ -99,8 +110,13 @@ async def delete_document(document_id: int,
     document_name = document.file
 
     await db.execute(sql_delete(models.Document).where(models.Document.id == document_id))
-
-    await run_in_threadpool(delete_document_from_disk,document_name)
+    try:
+        response =await delete_document_s3(filename=document_name)
+    except ClientError as err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error while deleting document {document_name} from S3: {err}"
+        )
 
     await db.commit()
     return {"success":"The document was deleted successfully"}
@@ -121,6 +137,28 @@ async def get_document(document_id: int , db: Annotated[AsyncSession,Depends(get
             status_code=status.HTTP_404_NOT_FOUNDM,
             detail="The document was not found"
         )
+    object_name = document.file
+    if not object_name:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The document was not found"
+        )
+
+    mime_type = ""
+    for mime , ext in ACCEPTED_MIME.items():
+        if object_name.endswith(ext):
+            mime_type = mime
+
+
+    object_name = f"files/{object_name}"
+    presigned_url = create_presigned_url(object_name=object_name,response_type=mime_type)
+    if presigned_url is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not generate presigned url for the current file, please try again."
+        )
+
+    document.file = presigned_url
 
     return document
 
@@ -130,47 +168,25 @@ async def get_documents(db:Annotated[AsyncSession,Depends(get_db)],current_user:
 
     client = result.scalars().first()
 
-    if not client:
+    if not client or client.created_by_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Client was not found")
-    if client.created_by_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="You are not allowed to access this document")
 
     result = await db.execute(select(models.Document).where(models.Document.client_id == client_id))
 
     documents = result.scalars().all()
 
+    for doc in documents:
+        object_name = f"files/{doc.file}"
+        mime_type = ""
+        for mime, ext in ACCEPTED_MIME.items():
+            if object_name.endswith(ext):
+                mime_type = mime
+        presigned_url = create_presigned_url(object_name=object_name,response_type=mime_type)
+        doc.file = presigned_url
 
     return documents
 
-@router.patch("",status_code=status.HTTP_200_OK,response_model=DocumentResponse)
-async def update_document(
-        new_name : Annotated[str,Field(min_length=3,max_length=250)],
-        db:Annotated[AsyncSession,Depends(get_db)],
-        current_user:CurrentUser,
-        client_id: int,
-        document_id : int):
-    result = await db.execute(select(models.Client).where(models.Client.id == client_id))
-    client = result.scalars().first()
 
-    if not client:
-        raise HTTPException(status.HTTP_404_NOT_FOUND,"The client was not found")
-
-    if client.created_by_id != current_user.id:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED,"You are not authorized to modify this document")
-
-    result = await db.execute(select(models.Document).where(models.Document.id == document_id))
-
-    document = result.scalars().first()
-
-    if not document:
-        raise HTTPException(status.HTTP_404_NOT_FOUND,"The document was not found")
-
-    document.name = new_name
-
-    await db.commit()
-    await db.refresh(document)
-
-    return document
 
 
 

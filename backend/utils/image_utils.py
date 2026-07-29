@@ -33,10 +33,11 @@ def _get_s3_client():
     )
 
 def create_presigned_url(
-        object_name, bucket_name = settings.s3_bucket_name, region_name = settings.s3_region, expiration =3600
-):
+        object_name, bucket_name = settings.s3_bucket_name, region_name = settings.s3_region, expiration =3600, response_type : str = "image/jpeg"
+)->str | None:
     """Generate a presigned URL to share an S3 object
 
+    :param response_type:
     :param bucket_name: string
     :param object_name: string
     :param region_name: string
@@ -62,7 +63,10 @@ def create_presigned_url(
     try:
         response = s3_client.generate_presigned_url(
             'get_object',
-            Params={'Bucket': bucket_name, 'Key': object_name},
+            Params={'Bucket': bucket_name,
+                    'Key': object_name,
+                    'ResponseContentType':response_type
+                    },
             ExpiresIn=expiration,
         )
     except ClientError as e:
@@ -108,12 +112,12 @@ def _delete_from_s3(key:str)->None:
     s3.delete_object(Bucket=settings.s3_bucket_name,Key=key)
 
 #Wrappers for synchron functions to run async
-async def upload_profile_image_s3(file_bytes : bytes, filename:str)->None:
+async def upload_file_s3(file_bytes : bytes, filename:str)->None:
     key = f"files/{filename}"
     await run_in_threadpool(_upload_to_s3,file_bytes,key)
 
 
-async def delete_profile_image_s3(filename: str | None) -> None:
+async def delete_document_s3(filename: str | None) -> None:
     if filename is None:
         return
     key = f"files/{filename}"

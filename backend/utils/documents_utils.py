@@ -1,10 +1,7 @@
-import os.path
 import uuid
-from os.path import exists
 from pathlib import Path
-
 import magic
-from fastapi import APIRouter
+from io import BytesIO
 
 BASE_DIR = Path(__file__).parent.parent
 DOCUMENT_DIR = BASE_DIR / "documents"
@@ -17,7 +14,7 @@ ACCEPTED_MIME={
 
 
 
-def process_document(content : bytes) -> str | None:
+def process_document(content : bytes) -> tuple[bytes,str] | None:
     chunk = content[:2048]
     mime_type = magic.from_buffer(chunk, mime=True)
     extension = None
@@ -29,14 +26,10 @@ def process_document(content : bytes) -> str | None:
     unique_name = str(uuid.uuid4().hex)
     filename = f"{unique_name}{extension}"
 
-    file_path = os.path.join(DOCUMENT_DIR,filename)
-    os.makedirs(DOCUMENT_DIR,exist_ok=True)
+    output = BytesIO(content)
+    output.seek(0)
 
-    with open(file_path,"wb") as file:
-        file.write(content)
-        file.close()
-
-    return file_path
+    return output.read() ,filename
 
 def delete_document_from_disk(document_name: str) -> None:
     if document_name is None:
@@ -44,6 +37,9 @@ def delete_document_from_disk(document_name: str) -> None:
     document_path = DOCUMENT_DIR / document_name
     if document_path.exists():
         document_path.unlink()
+
+
+
 
 
 
