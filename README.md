@@ -13,22 +13,34 @@ While traditional CRMs handle structured data, this service acts as the **narrat
   - **API Keys (M2M):** For secure machine-to-machine communication, allowing external CRMs to push/pull data.
 - **RAG-Ready Foundation:** Designed to be easily extended with `pgvector` to support semantic search and LLM-powered queries over client histories.
 
+## 🤖 AI-Powered RAG Pipeline (The "Brain")
+
+The core value of this system goes beyond file storage; it transforms static text into an interactive, agentic assistant. The upcoming AI architecture implements a complete Data Engineering and Retrieval-Augmented Generation pipeline:
+
+- **Automated Ingestion & Chunking:** Asynchronously processes unstructured documents (PDFs, DOCX, etc.), splitting large texts into semantic, manageable chunks.
+- **Vector Embeddings:** Transforms text chunks into high-dimensional vector representations using embedding models (e.g., OpenAI `text-embedding-3-small`).
+- **Native Vector Storage:** Leverages PostgreSQL with the **`pgvector`** extension for highly efficient, local similarity search, keeping tabular data and vector data in a unified database.
+- **Semantic Retrieval (`/clients/{id}/ask`):** An endpoint where users can ask natural language questions (e.g., *"What discount did we promise this client last month?"*). The system performs a semantic search to retrieve the most relevant historical context.
+- **Grounded LLM Synthesis:** The retrieved context is fed to an LLM to generate a precise, factual answer, strictly grounded in the client's actual data, complete with citations linking back to the original source documents.
+
 ## 🛠️ Tech Stack
 
-- **Framework:** FastAPI (Python)
+- **Frameworks:** FastAPI (Python), React (TypeScript)
 - **Database:** PostgreSQL (with SQLAlchemy ORM)
 - **Authentication:** JWT 
 - **Future AI Integration:** `pgvector`, LangChain/OpenAI (Planned)
 
 ### ☁️ Storage & Document Management
 - **Multi-Format Support:** Users can seamlessly upload and manage diverse file types, including `.pdf`, `.doc`, `.docx`, `.xlsx`, and `.csv`.
+- **Safe file upload:** The documents are verified and checked by MIME type before uploading.
 - **AWS S3 Integration:** All documents and attachments are securely stored in the cloud using Amazon S3 buckets, ensuring high availability, scalability, and decoupled file management.
+- **AWS Presigned URLs:** Only the authenticated owner of the client can see and interact with the documents, through a secured presigned URL provided by the AWS SDK (boto3).
 
 ### 🔐 Security & Account Management
 - **Password Recovery:** Built-in secure password reset flow. Users can request a password reset, which triggers an email containing a secure, time-limited recovery token.
 
 ### 🧪 Reliability
-- **Endpoint Testing:** Comprehensive test coverage across all REST API endpoints (using `pytest` and `httpx`) to ensure data integrity, validate authentication flows, and prevent regressions during continuous development.
+- **Endpoint Testing:** Comprehensive test coverage across all REST API endpoints (using **`pytest`** and **`httpx`**) to ensure data integrity, validate authentication flows, and prevent regressions during continuous development.
 
 ## 🚦 Getting Started
 
@@ -38,26 +50,6 @@ While traditional CRMs handle structured data, this service acts as the **narrat
 
 ### Installation
 1. Clone the repository:
-   \`\`\`bash
-   git clone https://github.com/PascalauAlex/Client_Knowledge_Hub.git
+   ```bash
+   git clone [https://github.com/PascalauAlex/Client_Knowledge_Hub.git](https://github.com/PascalauAlex/Client_Knowledge_Hub.git)
    cd Client_Knowledge_Hub
-   \`\`\`
-
-2. Create and activate a virtual environment:
-   \`\`\`bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   \`\`\`
-
-3. Install dependencies:
-   \`\`\`bash
-   pip install -r requirements.txt
-   \`\`\`
-
-4. Set up your `.env` file (Database URL, JWT Secret Key, etc.).
-
-5. Run the application:
-   \`\`\`bash
-   uvicorn main:app --reload
-   \`\`\`
-   Access the interactive API documentation at `http://localhost:8000/docs`.
