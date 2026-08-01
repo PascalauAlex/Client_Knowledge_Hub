@@ -1,10 +1,14 @@
+import os.path
+
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=os.path.join(BASE_DIR,".env"),
         env_file_encoding="utf-8"
     )
     secret_key : SecretStr
@@ -31,6 +35,8 @@ class Settings(BaseSettings):
     s3_access_key_id : SecretStr | None = None
     s3_secret_access_key : SecretStr | None = None
     s3_endpoint_url: str | None = None
+
+    openai_key : str | None = ""
 
 
 

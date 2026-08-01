@@ -1,10 +1,11 @@
 from __future__ import annotations
 from datetime import UTC, datetime
 from pygments.lexers import data
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from config import settings
 from database import Base
+from pgvector.sqlalchemy import Vector
 
 class User(Base):
     __tablename__ = "users"
@@ -60,6 +61,16 @@ class Document(Base):
         if self.file:
             return f"/documents/{self.file}"
         return None
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    text_content : Mapped[str] = mapped_column(Text, nullable=False)
+    embedding : Mapped[list[float]] = mapped_column(Vector(1536),nullable=True)
+    document_id : Mapped[int] = mapped_column(ForeignKey("documents.id",ondelete="CASCADE"))
+
 
 
 class PasswordResetToken(Base):

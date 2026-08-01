@@ -175,14 +175,11 @@ async def get_documents(db:Annotated[AsyncSession,Depends(get_db)],current_user:
 
     documents = result.scalars().all()
 
-    for doc in documents:
-        object_name = f"files/{doc.file}"
-        mime_type = ""
-        for mime, ext in ACCEPTED_MIME.items():
-            if object_name.endswith(ext):
-                mime_type = mime
-        presigned_url = create_presigned_url(object_name=object_name,response_type=mime_type)
-        doc.file = presigned_url
+    if documents is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The resource was not found."
+        )
 
     return documents
 
