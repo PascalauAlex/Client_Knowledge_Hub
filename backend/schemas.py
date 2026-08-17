@@ -69,6 +69,7 @@ class DocumentResponse(DocumentBase):
     file: str
     client_id : int
     created_at : datetime
+    extension_type : str
 
     
 

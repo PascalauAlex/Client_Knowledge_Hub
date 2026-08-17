@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     s3_access_key_id : SecretStr | None = None
     s3_secret_access_key : SecretStr | None = None
     s3_endpoint_url: str | None = None
+    llama_api_key : str | None= None
+
 
     openai_key : str | None = ""
 

@@ -1,11 +1,9 @@
 import uuid
 from io import BytesIO
-
 from PIL import Image, ImageOps
-
 from pathlib import Path
 import boto3
-from  boto3 import client
+from utils.aws_utils import _get_s3_client
 from starlette.concurrency import run_in_threadpool
 from botocore.exceptions import ClientError
 from botocore.config import Config
@@ -16,21 +14,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 PROFILE_PICS_DIR = BASE_DIR / "static" / "profile_pics"
 
 
-def _get_s3_client():
-    return boto3.client(
-        "s3",
-        region_name=settings.s3_region,
-        aws_access_key_id=(
-            settings.s3_access_key_id.get_secret_value()
-            if settings.s3_access_key_id
-            else None
-        ),
-        aws_secret_access_key=(
-            settings.s3_secret_access_key.get_secret_value()
-            if settings.s3_secret_access_key
-            else None
-        ),
-    )
 
 def create_presigned_url(
         object_name, bucket_name = settings.s3_bucket_name, region_name = settings.s3_region, expiration =3600, response_type : str = "image/jpeg"
@@ -75,7 +58,6 @@ def create_presigned_url(
 
         # The response contains the presigned URL
     return response
-
 
 
 

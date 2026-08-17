@@ -14,7 +14,7 @@ ACCEPTED_MIME={
 
 
 
-def process_document(content : bytes) -> tuple[bytes,str] | None:
+def process_document(content : bytes) -> tuple[bytes,str, str | None] | None:
     chunk = content[:2048]
     mime_type = magic.from_buffer(chunk, mime=True)
     extension = None
@@ -22,14 +22,14 @@ def process_document(content : bytes) -> tuple[bytes,str] | None:
         if mime == mime_type:
             extension = ACCEPTED_MIME[mime]
     if extension is None:
-        return None
+        extension = None
     unique_name = str(uuid.uuid4().hex)
     filename = f"{unique_name}{extension}"
 
     output = BytesIO(content)
     output.seek(0)
 
-    return output.read() ,filename
+    return output.read() ,filename, extension
 
 def delete_document_from_disk(document_name: str) -> None:
     if document_name is None:

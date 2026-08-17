@@ -2,7 +2,7 @@ import {useClients} from "../../hooks/useClients.ts";
 import {ClientCard} from "../../components/clients/ClientCard.tsx";
 import {useState} from "react";
 import {CreateClient} from "../../components/clients/CreateClient.tsx";
-import addUserIcon from "../../../public/add-user.png"
+import addUserIcon from "/add-user.png"
 import {Modal} from "../../components/Modal.tsx";
 
 export const ClientsPage = () => {
@@ -38,9 +38,12 @@ export const ClientsPage = () => {
                     <CreateClient onSuccess={() => setShowModal(false)}/>
                 </Modal>
                 <h1 className="font-bold ml-4 text-2xl">Clients</h1>
-                {data.map((client) => (
-                    <ClientCard key={client.id} client={client}/>
-                ))}
+                <div className="flex">
+                    {data.map((client) => (
+                        <ClientCard key={client.id} client={client}/>
+                    ))}
+                </div>
+
             </div>
         </div>
     )

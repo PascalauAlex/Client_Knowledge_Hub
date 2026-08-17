@@ -1,12 +1,10 @@
 import os.path
 from contextlib import asynccontextmanager
-from http.client import HTTPException
-from io import BytesIO
 
-from PIL import Image, UnidentifiedImageError
+
 from fastapi import FastAPI, UploadFile , HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.concurrency import run_in_threadpool
+
 
 from database import Base, engine
 from routers import users, clients, documents
@@ -43,6 +41,24 @@ app.include_router(documents.router, prefix="/api/documents",tags=["documents"])
 @app.get("/")
 async def default():
     return {"default":"default"}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

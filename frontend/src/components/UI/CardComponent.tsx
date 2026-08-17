@@ -23,12 +23,12 @@ export const CardComponent = ({name, avatar, email, children} : CardComponentI) 
 
                 {/* Avatar */}
                 <img
-                    src={avatar}
-                    alt={defaultAvatar}
+                    src={avatar ? avatar : defaultAvatar}
+                    alt="Default avatar"
                     className="w-32 h-32 rounded-full object-cover object-top mb-4 shadow-md border-2 border-slate-700"
                 />
 
-                {/* Detalii Utilizator */}
+
                 <div className="flex flex-col items-center gap-2 text-lg">
                  <span className="text-emerald-500 font-semibold text-2xl">
                  {}

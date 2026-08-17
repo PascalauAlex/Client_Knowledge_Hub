@@ -43,7 +43,7 @@ export const ClientCard = (props: ClientCardProps) => {
                 <div className="mt-4 pt-4 border-t border-slate-700 flex justify-end">
                     <DetailsButton
                         to={paths.clientDetail(props.client.id)}
-                        content="Vezi detalii" // sau "More"
+                        content="More"
                     />
                 </div>
 

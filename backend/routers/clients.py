@@ -1,3 +1,5 @@
+from unittest import result
+
 from starlette.concurrency import run_in_threadpool
 
 import models
@@ -7,9 +9,10 @@ from fastapi import  status
 from sqlalchemy import select, delete as sql_delete
 from models import Client
 from routers import documents
-from schemas import ClientCreate, ClientResponse, ClientUpdate
+from schemas import ClientCreate, ClientResponse, ClientUpdate, DocumentResponse
 from utils.auth import CurrentUser
-from utils.documents_utils import delete_document_from_disk
+from utils.documents_utils import delete_document_from_disk, ACCEPTED_MIME
+from utils.image_utils import create_presigned_url
 
 router = APIRouter(prefix="",tags=["clients"])
 
@@ -127,7 +130,47 @@ async def delete_client(client_id : int, db: DbSession, current_user: CurrentUse
     for doc in documents:
         await run_in_threadpool(delete_document_from_disk,doc.file)
 
-    return {"message":"All clients and documents were removed"}
+    return {"message":"Client and related documents were removed"}
+
+
+
+@router.get(path="/documents/{client_id}", response_model=list[DocumentResponse], status_code=status.HTTP_200_OK)
+async def get_client_documents(db: DbSession, current_user : CurrentUser, client_id : int):
+    result = await db.execute(select(models.Client).where(models.Client.id == client_id))
+    client = result.scalars().first()
+
+    if not client:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
+
+    if client.created_by_id != current_user.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,"Client not found")
+
+    result = await db.execute(select(models.Document).where(models.Document.client_id == client.id))
+
+    client_documents = result.scalars().all()
+
+    if not client_documents:
+        raise HTTPException(status.HTTP_404_NOT_FOUND,"Documents not found")
+
+    for doc in client_documents:
+        object_name = doc.file
+        mime_type = ""
+
+        for mime, ext in ACCEPTED_MIME.items():
+            if object_name.endswith(ext):
+                mime_type = mime
+
+        object_name = f"files/{object_name}"
+        presigned_url = create_presigned_url(object_name=object_name, response_type=mime_type)
+        if presigned_url is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Could not generate presigned url for the current file, please try again."
+            )
+        doc.file = presigned_url
+
+
+    return client_documents
 
 
 

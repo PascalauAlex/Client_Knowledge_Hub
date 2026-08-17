@@ -1,7 +1,6 @@
 from botocore.exceptions import ClientError
-from pydantic import Field
 from fastapi import APIRouter, status, UploadFile, Depends, HTTPException
-from typing import Annotated
+from typing import Annotated, Literal
 from sqlalchemy import select, delete as sql_delete
 from sqlalchemy.sql.functions import current_user
 from starlette.concurrency import run_in_threadpool
@@ -10,9 +9,12 @@ from config import settings
 from schemas import DocumentResponse
 from utils.auth import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
-from utils.documents_utils import process_document, delete_document_from_disk, ACCEPTED_MIME
+from utils.documents_utils import process_document, ACCEPTED_MIME
 from database import get_db
 from utils.image_utils import upload_file_s3, delete_document_s3, create_presigned_url
+from database import DbSession
+from utils.aws_utils import get_object
+from agents.structured_invoice_generator import structured_invoice_summary
 
 router = APIRouter()
 
@@ -23,8 +25,13 @@ async def upload_document(file: UploadFile,
                           db: Annotated[AsyncSession, Depends(get_db)],
                           current_user: CurrentUser,
                           client_id:int,
-                          name:str
+                          name:str,
+                          type: Literal["invoice","contract","report"]
                           ):
+
+    if not type:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="The accepted document type is: invoice , contract or report")
+
     if not file:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You must provide a file.")
 
@@ -35,6 +42,7 @@ async def upload_document(file: UploadFile,
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"The file extensions must be in {accepted_extensions}"
         )
+
     content = await file.read()
     result = await db.execute(select(models.Client).where(models.Client.id == client_id))
     client = result.scalars().first()
@@ -55,9 +63,9 @@ async def upload_document(file: UploadFile,
             detail="The size of the file cannot be bigger than 100 MB"
         )
 
-    processed_file ,filename = await run_in_threadpool(process_document,content)
+    processed_file ,filename, extension = await run_in_threadpool(process_document,content)
 
-    if filename is None:
+    if filename is None or extension is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The file must have the following extensions: (.pdf, .doc, .docx, .xlsx, .csv)"
@@ -75,7 +83,9 @@ async def upload_document(file: UploadFile,
     new_document = models.Document(
         name=name,
         client_id=client_id,
-        file=filename
+        file=filename,
+        extension_type=extension,
+        type=type
     )
 
     db.add(new_document)
@@ -121,6 +131,49 @@ async def delete_document(document_id: int,
     await db.commit()
     return {"success":"The document was deleted successfully"}
 
+
+@router.get("/document_summary")
+async def get_document_summary(document_id: int, db: DbSession, current_user : CurrentUser, client_id : int):
+    result = await db.execute(select(models.Client).where(models.Client.id == client_id))
+    client = result.scalars().first()
+    if not client:
+        raise HTTPException(status.HTTP_404_NOT_FOUND,detail="Client not found")
+
+    if client.created_by_id != current_user.id:
+        raise HTTPException(status=status.HTTP_404_NOT_FOUND, detail="Client not found")
+
+    result = await db.execute(select(models.Document).where(models.Document.id == document_id))
+    document = result.scalars().first()
+
+    if not document:
+        raise HTTPException(status=status.HTTP_404_NOT_FOUND, detail="Document was not found")
+
+    try:
+        s3_doc = await run_in_threadpool(get_object,document.file)
+    except ClientError as err:
+        print("Error while fetching the document from S3")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Could not fetch document {document.name} from s3")
+
+    structured_invoice = None
+
+    match document.type:
+        case 'invoice':
+            structured_invoice = await run_in_threadpool(structured_invoice_summary,document.file,s3_doc)
+    #TODO : Implement logic for other types of documents
+
+    summary = {"summary" : structured_invoice if structured_invoice else "No summary"}
+
+    if not structured_invoice:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="The ")
+
+
+    return summary
+
+
+
+
+
+
 @router.get("/{document_id}",status_code=status.HTTP_200_OK, response_model=DocumentResponse)
 async def get_document(document_id: int , db: Annotated[AsyncSession,Depends(get_db)],current_user: CurrentUser, client_id:int):
     result = await db.execute(select(models.Client).where(models.Client.id == client_id))
@@ -162,26 +215,16 @@ async def get_document(document_id: int , db: Annotated[AsyncSession,Depends(get
 
     return document
 
-@router.get("",status_code=status.HTTP_200_OK,response_model=list[DocumentResponse])
-async def get_documents(db:Annotated[AsyncSession,Depends(get_db)],current_user:CurrentUser, client_id : int):
-    result = await db.execute(select(models.Client).where(models.Client.id == client_id))
 
-    client = result.scalars().first()
 
-    if not client or client.created_by_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Client was not found")
 
-    result = await db.execute(select(models.Document).where(models.Document.client_id == client_id))
 
-    documents = result.scalars().all()
 
-    if documents is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="The resource was not found."
-        )
 
-    return documents
+
+
+
+
 
 
 
