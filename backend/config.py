@@ -37,7 +37,6 @@ class Settings(BaseSettings):
     s3_endpoint_url: str | None = None
     llama_api_key : str | None= None
 
-
     openai_key : str | None = ""
 
 
