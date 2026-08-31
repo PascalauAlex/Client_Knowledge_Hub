@@ -1,12 +1,10 @@
 import uuid
 from httpx import AsyncClient
-from pathlib import Path
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import models
 from models import PasswordResetToken
-from routers.users import reset_password
 from tests.conftest import auth_header, create_test_user, login_user
 from unittest.mock import AsyncMock, patch
 from utils.auth import hash_reset_token

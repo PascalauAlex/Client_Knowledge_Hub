@@ -1,5 +1,7 @@
 from datetime import datetime, UTC
+from typing import Literal
 
+from fastapi import UploadFile
 from pydantic import BaseModel, Field, EmailStr, SecretStr, ConfigDict
 
 
@@ -52,7 +54,7 @@ class ClientResponse(ClientBase):
 
 
 class ClientUpdate(ClientBase):
-    email : EmailStr = Field(default=None, max_length=120)
+    email : EmailStr = Field(max_length=120)
 
 
 
@@ -60,9 +62,6 @@ class ClientUpdate(ClientBase):
 class DocumentBase(BaseModel):
     name: str = Field(min_length=3, max_length=250)
 
-class DocumentCreate(DocumentBase):
-    file : str = Field(max_length=200)
-    client_id : int
 
 class DocumentResponse(DocumentBase):
     id: int
@@ -70,6 +69,9 @@ class DocumentResponse(DocumentBase):
     client_id : int
     created_at : datetime
     extension_type : str
+
+
+
 
     
 

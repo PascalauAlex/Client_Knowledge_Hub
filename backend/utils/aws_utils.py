@@ -23,26 +23,22 @@ def _get_s3_client():
         ),
     )
 
-
-
-
 def get_object(object_name : str):
     aws_client = _get_s3_client()
     bucket_object_name = f"files/{object_name}"
     try:
         response = aws_client.get_object(Bucket=settings.s3_bucket_name, Key=bucket_object_name)
         binary_data = response['Body'].read()
-
-
     except ClientError as err:
         error_code = err.response['Error']['Code']
         if error_code == 'NoSuchKey':
             print(f"File {bucket_object_name} was not found in the bucket {settings.s3_bucket_name}.")
         elif error_code == 'AccessDenied':
-            print("Nu ai permisiuni suficiente pentru a citi acest fișier.")
-            print("Not enought permissions to read this file")
+            print("Not enough permissions to read this file")
         else:
             print(f"Unexpected error from AWS: {err}")
         return None
     return binary_data
+
+
 

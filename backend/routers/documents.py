@@ -5,6 +5,7 @@ from sqlalchemy import select, delete as sql_delete
 from sqlalchemy.sql.functions import current_user
 from starlette.concurrency import run_in_threadpool
 import models
+from agents.rag import DocumentLoader
 from config import settings
 from schemas import DocumentResponse
 from utils.auth import CurrentUser
@@ -20,13 +21,13 @@ router = APIRouter()
 
 
 
-@router.post(path="/upload",status_code=status.HTTP_201_CREATED)
-async def upload_document(file: UploadFile,
+@router.post(path="/upload",status_code=status.HTTP_201_CREATED,)
+async def upload_document(name: str,
+                          client_id : int,
+                          file: UploadFile,
+                          type: Literal["invoice","contract","report"],
                           db: Annotated[AsyncSession, Depends(get_db)],
                           current_user: CurrentUser,
-                          client_id:int,
-                          name:str,
-                          type: Literal["invoice","contract","report"]
                           ):
 
     if not type:
@@ -71,6 +72,11 @@ async def upload_document(file: UploadFile,
             detail="The file must have the following extensions: (.pdf, .doc, .docx, .xlsx, .csv)"
         )
 
+    #TODO : Embed the document
+
+
+
+    # Upload the document on S3
     try:
         s3_upload = await upload_file_s3(processed_file,filename)
     except ClientError as err:
@@ -140,13 +146,13 @@ async def get_document_summary(document_id: int, db: DbSession, current_user : C
         raise HTTPException(status.HTTP_404_NOT_FOUND,detail="Client not found")
 
     if client.created_by_id != current_user.id:
-        raise HTTPException(status=status.HTTP_404_NOT_FOUND, detail="Client not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Client not found")
 
     result = await db.execute(select(models.Document).where(models.Document.id == document_id))
     document = result.scalars().first()
 
     if not document:
-        raise HTTPException(status=status.HTTP_404_NOT_FOUND, detail="Document was not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Document was not found")
 
     try:
         s3_doc = await run_in_threadpool(get_object,document.file)
@@ -154,6 +160,8 @@ async def get_document_summary(document_id: int, db: DbSession, current_user : C
         print("Error while fetching the document from S3")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Could not fetch document {document.name} from s3")
 
+    if not s3_doc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="The current file was not found!")
     structured_invoice = None
 
     match document.type:

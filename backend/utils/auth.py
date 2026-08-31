@@ -36,12 +36,6 @@ def hash_reset_token(token)-> str:
 
 
 
-
-
-
-
-
-
 def create_access_token(data: dict, expires_delta : timedelta| None = None) -> str:
     """Create JWT token"""
     to_encode = data.copy()

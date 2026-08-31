@@ -1,11 +1,6 @@
-import os.path
 from contextlib import asynccontextmanager
-
-
 from fastapi import FastAPI, UploadFile , HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-
-
 from database import Base, engine
 from routers import users, clients, documents
 
@@ -33,7 +28,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-image = os.path.dirname("")
+
 
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(clients.router, prefix="/api/clients", tags=["clients"])

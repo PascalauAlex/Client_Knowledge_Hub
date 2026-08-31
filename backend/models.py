@@ -1,13 +1,13 @@
 from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Literal
-
 from pygments.lexers import data
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from config import settings
 from database import Base
 from pgvector.sqlalchemy import Vector
+
 
 class User(Base):
     __tablename__ = "users"
@@ -32,7 +32,6 @@ class User(Base):
 
 class Client(Base):
     __tablename__ = "clients"
-
     id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name : Mapped[str] = mapped_column(String(150),unique=True,nullable=False)
     email : Mapped[str] = mapped_column(String(120), unique=True)
@@ -42,7 +41,6 @@ class Client(Base):
     )
     created_by_id : Mapped[int] = mapped_column(ForeignKey("users.id",ondelete="CASCADE"))
     created_by : Mapped["User"] = relationship(back_populates="created_clients")
-
     documents : Mapped[list["Document"]] = relationship(back_populates="client", cascade="all, delete-orphan")
 
 class Document(Base):
@@ -59,6 +57,7 @@ class Document(Base):
     extension_type: Mapped[str] = mapped_column(String(10), nullable=False)
     client_id : Mapped[int] = mapped_column(ForeignKey("clients.id",ondelete="CASCADE"))
     client : Mapped["Client"] = relationship(back_populates="documents")
+    chunks : Mapped[list["DocumentChunk"]] = relationship(back_populates="document", cascade="all, delete-orphan")
 
 
 
@@ -68,6 +67,16 @@ class Document(Base):
             return f"https://{settings.s3_bucket_name}.s3.{settings.s3_region}.amazonaws.com/profile_pics/{self.file}"
         return None
 
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    document_id : Mapped[int] = mapped_column(Integer, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    client_id : Mapped[int] = mapped_column(Integer, ForeignKey("clients.id",ondelete="CASCADE"), nullable=False)
+    text : Mapped[str] = mapped_column(Text, nullable=False)
+    embedding : Mapped[list[float]] = mapped_column(Vector(1536))
+    document : Mapped["Document"] = relationship("Document", back_populates="chunks")
+    client : Mapped["Client"] = relationship("Client")
 
 
 class PasswordResetToken(Base):

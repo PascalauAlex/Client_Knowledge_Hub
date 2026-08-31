@@ -1,14 +1,10 @@
-from unittest import result
-
 from starlette.concurrency import run_in_threadpool
-
 import models
 from database import DbSession
 from fastapi import APIRouter, HTTPException
 from fastapi import  status
 from sqlalchemy import select, delete as sql_delete
 from models import Client
-from routers import documents
 from schemas import ClientCreate, ClientResponse, ClientUpdate, DocumentResponse
 from utils.auth import CurrentUser
 from utils.documents_utils import delete_document_from_disk, ACCEPTED_MIME

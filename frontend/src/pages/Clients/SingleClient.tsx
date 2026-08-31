@@ -36,7 +36,6 @@ export const SingleClient = () => {
                         </div>
                     </DefaultCard>
                 </div>
-
             </div>
 
             <div className="flex-row max-w-1/2">

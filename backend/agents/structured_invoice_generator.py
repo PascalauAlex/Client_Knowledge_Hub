@@ -1,11 +1,8 @@
 import time
-
 from llama_cloud import LlamaCloud
-from pathlib import Path
 from pydantic import BaseModel, Field
 from datetime import datetime
-from dotenv import load_dotenv
-import os
+
 
 from config import settings
 
@@ -15,7 +12,6 @@ def _get_client() -> LlamaCloud:
     return _client
 
 
-
 class InvoiceData(BaseModel):
     vendor : str = Field(description="Vendor name")
     invoice_date : datetime
@@ -23,6 +19,7 @@ class InvoiceData(BaseModel):
     invoice_number : str
     total_due : str
     items : list[str] = Field(description="Items of the current invoice, as a list")
+    summary : str = Field(max_length=300, description="A brief summary about the invoice")
 
 
 def structured_invoice_summary(file_name : str,document : bytes):
