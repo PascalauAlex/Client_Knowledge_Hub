@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator
 from anyio import pytest_plugin
 
 os.environ["DATABASE_URL"] = (
-    "postgresql+psycopg://bloguser:test@localhost/test_blog"
+    "postgresql+psycopg://test_knowledgehub_user:test@localhost:5432/test_knowledgehub_db"
 )
 os.environ["S3_BUCKET_NAME"] = "test-bucket"
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
@@ -31,7 +31,8 @@ pytest_plugins = ["anyio"] # One event loop for all tests
 
 
 
-#Pytest fixture
+
+
 @pytest.fixture(scope="session")
 def anyio_backend():
     """ Configure AnyIO to use SelectorEventLoop on Windows
@@ -47,7 +48,8 @@ def anyio_backend():
 def test_engine():
     engine = create_async_engine(
         os.environ["DATABASE_URL"],
-        poolclass=NullPool
+        poolclass=NullPool,
+        #echo=True # For database writes
     )
     return engine
 
@@ -115,6 +117,15 @@ async def client(
     app.dependency_overrides.clear()
 
 
+@pytest.fixture
+async def authenticated_client(client ):
+    user = await create_test_user(client)
+    token = await login_user(client)
+    client.headers.update(auth_header(token))
+    yield client
+
+
+
 ## Auth Helpers
 async def create_test_user(
     client: AsyncClient,
@@ -153,6 +164,27 @@ async def login_user(
 
 def auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+# Client fixtures
+
+async def create_test_client(
+        client : AsyncClient,
+        name : str = "test_client",
+        email : str = "client@test.com",
+)-> dict:
+
+    response = await client.post(
+        "/api/clients",
+        json={
+            "name":name,
+            "email":email
+        },
+    )
+
+    assert response.status_code == 201, f"Failed to create client with name: {name} and email: {email}\nResponse status code:{response.status_code}\nResponse text: {response.text}"
+    client = response.json()
+
+    return client
 
 
 

@@ -1,3 +1,4 @@
+from sqlalchemy.orm import joinedload
 from starlette.concurrency import run_in_threadpool
 import models
 from database import DbSession
@@ -61,7 +62,7 @@ async def get_client(
         db: DbSession
 ):
     result = await db.execute(
-        select(models.Client).where(models.Client.id == client_id)
+        select(models.Client).where(models.Client.id == client_id).options(joinedload(models.Client.created_by))
     )
     client = result.scalars().first()
 
@@ -71,7 +72,7 @@ async def get_client(
             detail="Client was not found"
         )
 
-    if client.created_by != current_user:
+    if client.created_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"No client with the current id= {client_id}"

@@ -1,18 +1,18 @@
 import tempfile
 from typing import Literal
-from typing import Annotated
 from langchain_openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 from langchain_postgres import PGVector
-from mpmath.ctx_iv import convert_mpf_
 from pydantic import BaseModel
 from langchain_community.document_loaders import PyPDFLoader
 from config import settings
 from langchain_core.documents import Document
 
-load_dotenv()
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small",api_key=settings.openai_key)
 connection = settings.database_url
 collection_name = "document_chunks"
 

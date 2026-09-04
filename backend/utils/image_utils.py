@@ -61,8 +61,6 @@ def create_presigned_url(
 
 
 
-
-
 def process_profile_image(content: bytes) -> tuple[bytes, str]:
     with Image.open(BytesIO(content)) as original:
         img = ImageOps.exif_transpose(original)

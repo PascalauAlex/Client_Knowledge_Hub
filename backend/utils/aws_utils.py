@@ -1,9 +1,6 @@
-import io
 import boto3
-from boto3 import client
 from botocore.exceptions import ClientError
 from config import settings
-
 
 
 
