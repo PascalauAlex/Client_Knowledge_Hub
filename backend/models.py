@@ -53,7 +53,7 @@ class Document(Base):
         DateTime(timezone=True),
         default=lambda : datetime.now(tz=UTC)
     )
-    file : Mapped[str | None] = mapped_column(String(200), nullable=False, default=None)
+    file : Mapped[str | None] = mapped_column(String(200), nullable=False)
     extension_type: Mapped[str] = mapped_column(String(10), nullable=False)
     client_id : Mapped[int] = mapped_column(ForeignKey("clients.id",ondelete="CASCADE"))
     client : Mapped["Client"] = relationship(back_populates="documents")
@@ -77,6 +77,8 @@ class DocumentChunk(Base):
     embedding : Mapped[list[float]] = mapped_column(Vector(1536))
     document : Mapped["Document"] = relationship("Document", back_populates="chunks")
     client : Mapped["Client"] = relationship("Client")
+    chunk_index : Mapped[int] = mapped_column(Integer, nullable=False)
+    page : Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class PasswordResetToken(Base):

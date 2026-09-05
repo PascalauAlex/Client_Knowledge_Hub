@@ -5,7 +5,7 @@ from sqlalchemy import select, delete as sql_delete
 from sqlalchemy.sql.functions import current_user
 from starlette.concurrency import run_in_threadpool
 import models
-from agents.rag import DocumentLoader
+from agents.rag import DocumentLoader, ReportProcessor, embedd, save_embeddings
 from config import settings
 from schemas import DocumentResponse
 from utils.auth import CurrentUser
@@ -21,23 +21,20 @@ router = APIRouter()
 
 
 
-@router.post(path="/upload",status_code=status.HTTP_201_CREATED,)
+@router.post(path="/upload", status_code=status.HTTP_201_CREATED)
 async def upload_document(name: str,
-                          client_id : int,
+                          client_id: int,
                           file: UploadFile,
-                          type: Literal["invoice","contract","report"],
+                          doc_type: Literal["invoice", "contract", "report"],
                           db: Annotated[AsyncSession, Depends(get_db)],
                           current_user: CurrentUser,
                           ):
 
-    if not type:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="The accepted document type is: invoice , contract or report")
 
-    if not file:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You must provide a file.")
+    if doc_type != "report":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Only 'report' documents are supported for now.")
 
     accepted_extensions = tuple(ACCEPTED_MIME.values())
-
     if not file.filename or not file.filename.endswith(accepted_extensions):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -45,40 +42,27 @@ async def upload_document(name: str,
         )
 
     content = await file.read()
+
     result = await db.execute(select(models.Client).where(models.Client.id == client_id))
     client = result.scalars().first()
-    if client is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No client id"
-        )
+
+    if not client:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No client id")
+
     if client.created_by_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="You are unauthorized to upload this document to this client"
-        )
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "You are unauthorized to upload this document to this client")
 
     if len(content) > settings.max_file_size:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The size of the file cannot be bigger than 100 MB"
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The size of the file cannot be bigger than 100 MB")
 
-    processed_file ,filename, extension = await run_in_threadpool(process_document,content)
+    processed_file, filename, extension = await run_in_threadpool(process_document, content)
 
     if filename is None or extension is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The file must have the following extensions: (.pdf, .doc, .docx, .xlsx, .csv)"
-        )
-
-    #TODO : Embed the document
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The file must have the following extensions: (.pdf, .doc, .docx, .xlsx, .csv)")
 
 
-
-    # Upload the document on S3
     try:
-        s3_upload = await upload_file_s3(processed_file,filename)
+        await upload_file_s3(processed_file, filename)
     except ClientError as err:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -91,14 +75,42 @@ async def upload_document(name: str,
         client_id=client_id,
         file=filename,
         extension_type=extension,
-        type=type
+        type=doc_type
     )
-
     db.add(new_document)
-    await db.commit()
+
+    try:
+        await db.flush()  # obținem new_document.id fără a încheia tranzacția
+
+        loaded = DocumentLoader(extension=extension, file_bytes=processed_file).load_document()
+
+        match new_document.type:
+            case "report":
+                chunks = ReportProcessor().recursive_chunking(loaded)
+
+        if not chunks:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "The document contains no extractable text.")
+
+        embeddings = await embedd(chunks=chunks)
+        await save_embeddings(
+            db=db,
+            chunks=chunks,
+            embeddings=embeddings,
+            document_id=new_document.id,
+            client_id=new_document.client_id,
+        )
+        await db.commit()
+
+    except HTTPException:
+        await db.rollback()
+        await delete_document_s3(filename)
+        raise
+    except Exception as err:
+        await db.rollback()
+        await delete_document_s3(filename)
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Failed to process document: {err}") from err
+
     await db.refresh(new_document)
-
-
     return new_document
 
 @router.delete("/delete",status_code=status.HTTP_200_OK)

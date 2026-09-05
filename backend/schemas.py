@@ -73,8 +73,6 @@ class DocumentResponse(DocumentBase):
 
 
 
-    
-
 
 class TagBase(BaseModel):
     pass

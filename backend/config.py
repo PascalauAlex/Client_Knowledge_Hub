@@ -16,10 +16,8 @@ class Settings(BaseSettings):
     database_url: str
     access_token_expire_minutes: int = 200
     reset_token_expire_minutes: int = 400
-
     max_image_size : int = 1024 * 1024 * 5 # 5 MB
     max_file_size : int = 1024 * 1024 * 100 # 100 MB
-
     # Email send
     mail_from : str = ""
     mail_host : str = ""
@@ -27,9 +25,7 @@ class Settings(BaseSettings):
     mail_username : str = ""
     mail_password : str = ""
     mail_tls : bool = True
-
     frontend_url : str = "http://localhost:5173"
-
     s3_bucket_name : str = ""
     s3_region : str = "us-east-1"
     s3_access_key_id : SecretStr | None = None
