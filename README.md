@@ -1,23 +1,18 @@
 Client Knowledge Hub 🧠💼
 
-A standalone microservice built with FastAPI designed to aggregate, manage, and query unstructured client data (meeting notes, emails, feedback, tickets).
+A standalone microservice built with FastAPI designed to aggregate, manage, and query client data (invoice, report, contract). 
 
 While traditional CRMs handle structured data, this service acts as the narrative memory for a client and serves as the foundational ingestion layer for advanced AI integrations.
 🚀 Key Features
 
     Decoupled Architecture: Integrates seamlessly with any existing CRM using external_crm_id mapping.
 
-    Narrative CRUD: Complete management of Clients and nested Documents categorized by source_type.
-
-    Dual-Strategy Authentication:
+    Narrative CRUD: Complete management of Clients and nested Documents categorized by type.
 
         JWT (JSON Web Tokens): For human users (e.g., sales reps) accessing the system via a frontend client.
+    
 
-        API Keys (M2M): For secure machine-to-machine communication, allowing external CRMs to push/pull data.
-
-    RAG-Ready Foundation: Designed to be easily extended with pgvector to support semantic search and LLM-powered queries over client histories.
-
-🤖 AI Capabilities: Agentic Extraction & Future RAG
+🤖 AI Capabilities: Agentic Extraction & RAG.
 
 The core value of this system goes beyond file storage; it transforms static text into structured, actionable insights.
 🟢 Currently Implemented: Agentic Structured Extraction
@@ -28,11 +23,16 @@ Before jumping into open-ended chat (RAG), the system employs LlamaIndex and Lla
 
     Automated Document Summaries: Generates concise, structured summaries of complex client documents, turning lengthy PDFs into scannable insights without requiring a human to read them end-to-end.
 
+Added suport for generating embeddings for Report document type and save document embeddings into 🐘 PostgresSQL Database using PGVector.
+
+‼️Upload document endpoint updated to support embeddings generation and database transaction logic. 
+  In case of failure the system will rollback the changes and return an descriptive error.
+
 🟡 Planned Milestone: The RAG Pipeline (The "Brain")
 
 The ultimate goal of this architecture is to implement a complete Retrieval-Augmented Generation pipeline:
 
-    Automated Ingestion & Chunking: Asynchronously splitting large texts into semantic, manageable chunks.
+    Automated Ingestion & Chunking: Asynchronously splitting large texts into semantic, manageable chunks, using Recursive Splitter or Semantic Splitter, based on document type.
 
     Native Vector Storage: Leveraging PostgreSQL with the pgvector extension for highly efficient, local similarity search.
 
@@ -44,14 +44,13 @@ The ultimate goal of this architecture is to implement a complete Retrieval-Augm
 
     Frameworks: FastAPI (Python), React (TypeScript)
 
-    Database: PostgreSQL (with SQLAlchemy ORM)
+    Database: PostgreSQL (with SQLAlchemy ORM) and PGVector (for embedding store)
 
-    AI & Data Extraction: LlamaIndex, LlamaCloud (Agentic Extraction)
+    AI & Data Extraction: LlamaIndex, LlamaCloud (Agentic Extraction), LangGraph (RAG pipeline)
 
     Authentication: JWT
 
-    Future AI Integration: pgvector, LangChain/OpenAI (Planned)
-
+    
 ☁️ Storage & Document Management
 
     Multi-Format Support: Users can seamlessly upload and manage diverse file types, including .pdf, .doc, .docx, .xlsx, and .csv.
@@ -73,11 +72,13 @@ Prerequisites
 
     Python 3.10+
 
-    PostgreSQL
+    PostgreSQL and PGVector (Prefered as a 🐋 Docker image )  
 
     AWS S3 Credentials (for file storage)
 
     LlamaCloud API Key (for document extraction)
+
+    LangSmith for monitorization.
 
 Installation
 
