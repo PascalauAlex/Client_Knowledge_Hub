@@ -13,7 +13,7 @@ ACCEPTED_MIME={
 }
 
 
-
+""" Process document returning Bytes Stream, filename and extension """
 def process_document(content : bytes) -> tuple[bytes,str, str | None] | None:
     chunk = content[:2048]
     mime_type = magic.from_buffer(chunk, mime=True)

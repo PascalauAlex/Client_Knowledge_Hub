@@ -29,15 +29,16 @@ async def upload_document(name: str,
                           db: Annotated[AsyncSession, Depends(get_db)],
                           current_user: CurrentUser,
                           ):
-
-
+    # Ensure document type is within ["report","invoice","contract"]
+    # TODO : Suport invoice and contract doc type
     if doc_type != "report":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Only 'report' documents are supported for now.")
 
+    # Check document extension and accept only the processable ones
     accepted_extensions = tuple(ACCEPTED_MIME.values())
     if not file.filename or not file.filename.endswith(accepted_extensions):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"The file extensions must be in {accepted_extensions}"
         )
 
@@ -45,22 +46,25 @@ async def upload_document(name: str,
 
     result = await db.execute(select(models.Client).where(models.Client.id == client_id))
     client = result.scalars().first()
-
     if not client:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No client id")
 
+    # Check if the passed client_id belongs to the authenticated user
     if client.created_by_id != current_user.id:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "You are unauthorized to upload this document to this client")
 
+    # Enforce max file size ( see settings for exact supported size)
     if len(content) > settings.max_file_size:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The size of the file cannot be bigger than 100 MB")
 
+    # Process document
     processed_file, filename, extension = await run_in_threadpool(process_document, content)
 
     if filename is None or extension is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The file must have the following extensions: (.pdf, .doc, .docx, .xlsx, .csv)")
 
 
+    # Upload document to S3 storage
     try:
         await upload_file_s3(processed_file, filename)
     except ClientError as err:
@@ -69,7 +73,7 @@ async def upload_document(name: str,
             detail=f"Error while uploading to S3 {err}"
         ) from err
 
-
+    # Create a new object
     new_document = models.Document(
         name=name,
         client_id=client_id,
@@ -78,10 +82,10 @@ async def upload_document(name: str,
         type=doc_type
     )
     db.add(new_document)
-
+    # Atomic transaction
     try:
-        await db.flush()  # obținem new_document.id fără a încheia tranzacția
-
+        await db.flush()  # obtain document_id without commit
+        # Document loader -> returns Document for processing
         loaded = DocumentLoader(extension=extension, file_bytes=processed_file).load_document()
 
         match new_document.type:
@@ -91,6 +95,7 @@ async def upload_document(name: str,
         if not chunks:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "The document contains no extractable text.")
 
+        # Generate embeddings and save them to the database
         embeddings = await embedd(chunks=chunks)
         await save_embeddings(
             db=db,
