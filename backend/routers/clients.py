@@ -1,12 +1,13 @@
 from sqlalchemy.orm import joinedload
 from starlette.concurrency import run_in_threadpool
 import models
+from agents.rag import retrieve_chunks, generate_answer
 from database import DbSession
 from fastapi import APIRouter, HTTPException
 from fastapi import  status
 from sqlalchemy import select, delete as sql_delete
 from models import Client
-from schemas import ClientCreate, ClientResponse, ClientUpdate, DocumentResponse
+from schemas import ClientCreate, ClientResponse, ClientUpdate, DocumentResponse, DocumentChunkOut
 from utils.auth import CurrentUser
 from utils.documents_utils import delete_document_from_disk, ACCEPTED_MIME
 from utils.image_utils import create_presigned_url
@@ -168,6 +169,28 @@ async def get_client_documents(db: DbSession, current_user : CurrentUser, client
 
 
     return client_documents
+
+
+@router.post("/{client_id}/query")
+async def query_documents(
+        db: DbSession,
+        client_id: int,
+        query: str,
+        current_user: CurrentUser
+):
+    result = await db.execute(select(models.Client).where(models.Client.id == client_id))
+    client = result.scalars().first()
+
+
+    if not client or client.created_by_id != current_user.id :
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Client not found")
+
+    answer = await generate_answer(db=db, query=query, client_id=client_id)
+
+
+    return answer
+
+
 
 
 

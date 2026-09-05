@@ -70,8 +70,13 @@ class DocumentResponse(DocumentBase):
     created_at : datetime
     extension_type : str
 
-
-
+class DocumentChunkOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id : int
+    document_id : int
+    chunk_index : int
+    page : int | None
+    text : str
 
 
 class TagBase(BaseModel):
