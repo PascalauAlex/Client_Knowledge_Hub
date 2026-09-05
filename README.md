@@ -1,89 +1,115 @@
-Client Knowledge Hub 🧠💼
+# Client Knowledge Hub 🧠💼
 
-A standalone microservice built with FastAPI designed to aggregate, manage, and query client data (invoice, report, contract). 
+A standalone microservice built with **FastAPI**, designed to aggregate, manage, and query client data (invoices, reports, contracts).
 
-While traditional CRMs handle structured data, this service acts as the narrative memory for a client and serves as the foundational ingestion layer for advanced AI integrations.
-🚀 Key Features
+While traditional CRMs handle structured data, this service acts as the **narrative memory** for a client and serves as the foundational ingestion layer for advanced AI integrations.
 
-    Decoupled Architecture: Integrates seamlessly with any existing CRM using external_crm_id mapping.
+---
 
-    Narrative CRUD: Complete management of Clients and nested Documents categorized by type.
+## 🚀 Key Features
 
-        JWT (JSON Web Tokens): For human users (e.g., sales reps) accessing the system via a frontend client.
-    
+- **Decoupled Architecture:** Integrates with any existing CRM using `external_crm_id` mapping.
+- **Narrative CRUD:** Complete management of Clients and nested Documents categorized by type.
+- **JWT Authentication:** For human users (e.g., sales reps) accessing the system via a frontend client.
 
-🤖 AI Capabilities: Agentic Extraction & RAG.
+---
 
-The core value of this system goes beyond file storage; it transforms static text into structured, actionable insights.
-🟢 Currently Implemented: Agentic Structured Extraction
+## 🤖 RAG Pipeline — Retrieval-Augmented Generation
 
-Before jumping into open-ended chat (RAG), the system employs LlamaIndex and LlamaCloud Extract to intelligently summarize and parse unstructured files:
+The core value of this system goes beyond file storage: it turns a client's documents into a **searchable, queryable knowledge base** that answers natural-language questions grounded in the client's own data.
 
-    Structured Invoice Parsing: Uploaded invoices (PDFs, images) are passed through an agentic extraction pipeline that reads the unstructured document and returns strictly typed JSON data (Vendor, Invoice Date, Due Date, Items, Total) validated via Pydantic schemas.
+The pipeline is built **natively on PostgreSQL + pgvector** — embeddings, metadata, and similarity search all live in the application's own schema, under real foreign keys and per-client isolation. No external vector store or vector-DB abstraction is used; the service owns the full path from bytes to answer.
 
-    Automated Document Summaries: Generates concise, structured summaries of complex client documents, turning lengthy PDFs into scannable insights without requiring a human to read them end-to-end.
+### Architecture
 
-Added suport for generating embeddings for Report document type and save document embeddings into 🐘 PostgresSQL Database using PGVector.
+The RAG flow is split into a clear ingestion path and a retrieval path.
 
-‼️Upload document endpoint updated to support embeddings generation and database transaction logic. 
-  In case of failure the system will rollback the changes and return an descriptive error.
+**Ingestion (on document upload):**
 
-🟡 Planned Milestone: The RAG Pipeline (The "Brain")
+1. **Load** — The raw file bytes are parsed into text. PDFs are handled via `PyPDFLoader`, preserving per-page metadata for later citations.
+2. **Chunk** — Text is split into overlapping, token-sized chunks using a `RecursiveCharacterTextSplitter` configured with a **tiktoken** encoder, so `chunk_size` and `overlap` are measured in tokens rather than characters. Chunking strategy is selected **per document type** (currently `report`).
+3. **Embed** — Each chunk is embedded with OpenAI `text-embedding-3-small` (1536-dim) in a single batched, asynchronous call.
+4. **Store** — Chunks are persisted to the `document_chunks` table, each row carrying its vector plus full provenance: `document_id`, `client_id`, `chunk_index`, and `page`.
 
-The ultimate goal of this architecture is to implement a complete Retrieval-Augmented Generation pipeline:
+**Retrieval (on query):**
 
-    Automated Ingestion & Chunking: Asynchronously splitting large texts into semantic, manageable chunks, using Recursive Splitter or Semantic Splitter, based on document type.
+1. **Authorize** — The requesting user's ownership of the target client is verified *before* any retrieval, so the client scope is derived from authorization, never from a caller-supplied parameter.
+2. **Embed the question** — The natural-language query is embedded with the same model used at ingestion, keeping question and chunks in one vector space.
+3. **Similarity search** — Nearest chunks are found with pgvector's `cosine_distance`, **filtered by `client_id`** in the same query. This `WHERE client_id = ...` on a real, indexed column is the system's security boundary: a user can never retrieve another client's chunks.
+4. **Grounded synthesis** *(in progress)* — Retrieved chunks are packed into an LLM prompt with strict instructions to answer **only** from the provided context and to cite the source document and page.
 
-    Native Vector Storage: Leveraging PostgreSQL with the pgvector extension for highly efficient, local similarity search.
+### Design decisions worth noting
 
-    Semantic Retrieval (/clients/{id}/ask): An endpoint where users can ask natural language questions (e.g., "What discount did we promise this client last month?").
+- **Native schema ownership over a vector-store abstraction.** Storing vectors in the app's own `document_chunks` table (rather than a managed vector store) means deleting a document cascades to its chunks at the database level, and client isolation is a plain column filter — simple to reason about and hard to get wrong.
+- **Per-client isolation as a first-class security concern.** `client_id` is denormalized onto every chunk and enforced both by the query filter and by authorization upstream.
+- **Provenance for citations.** `chunk_index` and `page` are carried through the whole pipeline so answers can point back to exactly where a fact came from.
+- **Atomic ingestion.** Document row and its chunks are written in a single all-or-nothing transaction; any failure (parsing, embedding, DB) triggers a rollback and cleans up the already-uploaded S3 object, so the system never ends up with a "mute" document that exists but has no searchable context.
 
-    Grounded LLM Synthesis: Generating precise, factual answers strictly grounded in the client's actual data, complete with citations linking back to the original source documents.
+### Status
 
-🛠️ Tech Stack
+| Capability | State |
+| --- | --- |
+| Embedding generation for `report` documents | ✅ Implemented |
+| Vector storage in PostgreSQL via pgvector | ✅ Implemented |
+| Atomic upload with rollback + S3 cleanup | ✅ Implemented |
+| Semantic retrieval, client-isolated (`cosine_distance`) | ✅ Implemented |
+| Grounded LLM synthesis with citations | 🟡 In progress |
+| Additional document types (`contract`) & structured invoice handling | 🔜 Planned |
+| Approximate vector index (HNSW) for scale | 🔜 Planned |
 
-    Frameworks: FastAPI (Python), React (TypeScript)
+---
 
-    Database: PostgreSQL (with SQLAlchemy ORM) and PGVector (for embedding store)
+## 🧾 Agentic Structured Extraction
 
-    AI & Data Extraction: LlamaIndex, LlamaCloud (Agentic Extraction), LangGraph (RAG pipeline)
+Alongside RAG, the system parses unstructured files into typed data using **LlamaIndex** and **LlamaCloud Extract**:
 
-    Authentication: JWT
+- **Structured Invoice Parsing:** Uploaded invoices (PDFs, images) run through an agentic extraction pipeline that returns strictly typed JSON (Vendor, Invoice Date, Due Date, Items, Total), validated via **Pydantic** schemas.
+- **Automated Document Summaries:** Generates concise, structured summaries of complex client documents, turning lengthy PDFs into scannable insights.
 
-    
-☁️ Storage & Document Management
+> **Note:** Invoices are handled by structured extraction rather than semantic RAG — their questions are typically aggregate ("what did we invoice this client in Q1?"), which structured fields answer better than similarity search.
 
-    Multi-Format Support: Users can seamlessly upload and manage diverse file types, including .pdf, .doc, .docx, .xlsx, and .csv.
+---
 
-    Safe File Upload: Documents are verified and checked by MIME type before uploading.
+## ☁️ Storage & Document Management
 
-    AWS S3 Integration: All documents and attachments are securely stored in the cloud using Amazon S3 buckets, ensuring high availability, scalability, and decoupled file management.
+- **Multi-Format Support:** Upload and manage `.pdf`, `.doc`, `.docx`, `.xlsx`, and `.csv`.
+- **Safe File Upload:** Documents are verified by MIME type before upload.
+- **AWS S3 Integration:** All documents are stored in Amazon S3 for high availability and decoupled file management.
+- **AWS Presigned URLs:** Only the authenticated owner of a client can access its documents, via secured presigned URLs (boto3).
 
-    AWS Presigned URLs: Only the authenticated owner of the client can see and interact with the documents, through a secured presigned URL provided by the AWS SDK (boto3).
+---
 
-🔐 Security & Reliability
+## 🔐 Security & Reliability
 
-    Password Recovery: Built-in secure password reset flow. Users can request a password reset, which triggers an email containing a secure, time-limited recovery token.
+- **Password Recovery:** Secure, time-limited token-based password reset flow delivered by email.
+- **Endpoint Testing:** Test coverage across REST endpoints (pytest + httpx) to validate auth flows and prevent regressions.
 
-    Endpoint Testing: Comprehensive test coverage across all REST API endpoints (using pytest and httpx) to ensure data integrity, validate authentication flows, and prevent regressions during continuous development.
+---
 
-🚦 Getting Started
-Prerequisites
+## 🛠️ Tech Stack
 
-    Python 3.10+
+- **Frameworks:** FastAPI (Python), React (TypeScript)
+- **Database:** PostgreSQL (SQLAlchemy ORM, async) + pgvector for the embedding store
+- **RAG:** pgvector similarity search, OpenAI `text-embedding-3-small`, LangChain text splitters (tiktoken)
+- **Structured Extraction:** LlamaIndex, LlamaCloud
+- **Authentication:** JWT
+- **Monitoring:** LangSmith
 
-    PostgreSQL and PGVector (Prefered as a 🐋 Docker image )  
+---
 
-    AWS S3 Credentials (for file storage)
+## 🚦 Getting Started
 
-    LlamaCloud API Key (for document extraction)
+### Prerequisites
 
-    LangSmith for monitorization.
+- Python 3.10+
+- PostgreSQL with the pgvector extension (preferably as a 🐋 Docker image)
+- AWS S3 credentials (for file storage)
+- OpenAI API key (for embeddings and synthesis)
+- LlamaCloud API key (for structured extraction)
 
-Installation
+### Installation
 
-Clone the repository:
-Bash
-
+```bash
 git clone https://github.com/PascalauAlex/Client_Knowledge_Hub.git
 cd Client_Knowledge_Hub
+```
