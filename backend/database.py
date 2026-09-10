@@ -9,6 +9,7 @@ from pgvector.psycopg import register_vector_async
 
 engine = create_async_engine(
     url=settings.database_url,
+    echo=True,
 )
 from sqlalchemy import event
 
@@ -24,8 +25,6 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-class Base(DeclarativeBase):
-    pass
 
 
 

@@ -1,9 +1,11 @@
 import os
 import tempfile
+from contextlib import contextmanager, AbstractContextManager
 from dataclasses import dataclass
 from typing import Literal
 from langchain_text_splitters import  RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader, UnstructuredWordDocumentLoader, UnstructuredExcelLoader
+from setuptools import find_namespace_packages
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from langchain_core.documents import Document
@@ -15,27 +17,44 @@ from sqlalchemy import select
 collection_name = "document_chunks"
 
 
+@contextmanager
+def generate_temp_file(file_bytes: bytes, extension: str):
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=extension)
+    try:
+        tmp.write(file_bytes)
+        tmp.flush()
+        tmp.close()
+        yield tmp.name
+    finally:
+        os.unlink(tmp.name)
+
+
 @dataclass
 class DocumentLoader:
     extension: Literal[".pdf", ".doc", ".docx", ".xlsx"]
     file_bytes : bytes
 
     def load_document(self) -> list[Document] | None:
+
+
         match self.extension:
             case ".pdf":
-                tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=self.extension)
-                try:
-                    tmpfile.write(self.file_bytes)
-                    tmpfile.flush()
-                    tmpfile.close()
-                    loader = PyPDFLoader(tmpfile.name)
+                with generate_temp_file(file_bytes=self.file_bytes, extension=self.extension) as tmp_file:
+                    loader = PyPDFLoader(file_path=tmp_file)
                     return loader.load()
-                finally:
-                    os.unlink(tmpfile.name)
+
+            case ".doc" | ".docx":
+                with generate_temp_file(file_bytes=self.file_bytes, extension=self.extension) as tmp_file:
+                    loader = UnstructuredWordDocumentLoader(file_path=tmp_file, mode="single")
+                    return loader.load()
+
+            case ".xlsx":
+                with generate_temp_file(file_bytes=self.file_bytes, extension=self.extension) as tmp_file:
+                    loader = UnstructuredExcelLoader(file_path=tmp_file, mode="single")
+                    return loader.load()
 
             case _:
                 raise ValueError(f"Extension {self.extension} is unsupported.")
-
 
 
 @dataclass
@@ -44,31 +63,34 @@ class Processor:
     overlap : int
 
     def __repr__(self) -> str:
-        return f"Processor(chunk_size={self.chunk_size}, overlap={self.overlap})"
+        return f"Processor(chunk_size={self.chunk_size!r}, overlap={self.overlap})"
     def __str__(self) -> str:
         return "Base class for document type processing system. Use as blueprint for other classes."
 
 
 @dataclass
 class ReportProcessor(Processor):
+
     chunk_size : int = 300
     overlap : int = 20
 
     def recursive_chunking(self,documents):
+        """  Text splitter used for returning chunks split with Recursive chunking algorithm. Input: Document Returns: the processed chunks."""
         if not documents:
             raise ValueError("No documents to process.")
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=self.chunk_size,
             chunk_overlap=self.overlap,
             separators=["\n\n","\n"," ",""],
-
-
         )
         chunks = splitter.split_documents(documents)
 
         print(f"Original length: {len(documents)} chars")
         print(f"Number of chunks: {len(chunks)}")
         return chunks
+
+    def __str__(self) -> str:
+        return f"Report processor used for chunking and processing report document type."
 
 
 async def embedd(chunks):

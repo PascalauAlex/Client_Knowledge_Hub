@@ -3,10 +3,14 @@ from datetime import UTC, datetime
 from typing import Literal
 from pygments.lexers import data
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Float
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 from config import settings
-from database import Base
 from pgvector.sqlalchemy import Vector
+
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 class User(Base):
@@ -30,6 +34,17 @@ class User(Base):
             return f"https://{settings.s3_bucket_name}.s3.{settings.s3_region}.amazonaws.com/profile_pics/{self.image_file}"
         return "/static/profile_pics/default.jpg"
 
+
+    def __repr__(self) -> str:
+        return (f"User(id={self.id}, "
+                f"username={self.username}, "
+                f"email={self.email}, "
+                f"password_hash={self.password_hash}, "
+                f"created_at={self.created_at}, "
+                f"created_clients={self.created_clients}, "
+                f"image_file={self.image_file}, "
+                f"reset_token={self.reset_token}")
+
 class Client(Base):
     __tablename__ = "clients"
     id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -42,6 +57,10 @@ class Client(Base):
     created_by_id : Mapped[int] = mapped_column(ForeignKey("users.id",ondelete="CASCADE"))
     created_by : Mapped["User"] = relationship(back_populates="created_clients")
     documents : Mapped[list["Document"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+
+
+    def __repr__(self) -> str:
+        pass
 
 class Document(Base):
     __tablename__ = "documents"
@@ -59,13 +78,15 @@ class Document(Base):
     client : Mapped["Client"] = relationship(back_populates="documents")
     chunks : Mapped[list["DocumentChunk"]] = relationship(back_populates="document", cascade="all, delete-orphan")
 
-
-
     @property
     def file_path(self) -> str | None:
         if self.file:
             return f"https://{settings.s3_bucket_name}.s3.{settings.s3_region}.amazonaws.com/profile_pics/{self.file}"
         return None
+
+
+    def __repr__(self) -> str:
+        pass
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
@@ -79,6 +100,10 @@ class DocumentChunk(Base):
     client : Mapped["Client"] = relationship("Client")
     chunk_index : Mapped[int] = mapped_column(Integer, nullable=False)
     page : Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+
+    def __repr__(self) -> str:
+        pass
 
 
 class PasswordResetToken(Base):
@@ -96,4 +121,8 @@ class PasswordResetToken(Base):
         default= lambda : datetime.now(tz=UTC)
     )
     user : Mapped[User] = relationship(back_populates="reset_token")
+
+    def __repr__(self) -> str:
+        pass
+
 
