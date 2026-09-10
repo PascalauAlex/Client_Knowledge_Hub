@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile , HTTPException, status, Request
+from typing import Callable
+from fastapi import FastAPI, UploadFile , HTTPException, status, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
@@ -32,6 +33,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next: Callable):
+    response = await call_next(request)
+
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    if "Referrer-Policy" not in response.headers:
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if request.url.hostname not in ("localhost","127.0.0.1"):
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=63072000; includeSubDomains"
+        )
+
+    return response
 
 
 
