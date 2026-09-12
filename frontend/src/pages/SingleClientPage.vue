@@ -9,13 +9,14 @@ import BaseModal from '@/components/BaseModal.vue'
 
 import type { Client } from '@/types/client.ts'
 import type { Documents } from '@/types/documents.ts'
+import config from '../config'
 
 const route = useRoute()
 const router = useRouter()
 
 const client = ref<Client>()
 const documents = ref<Documents[]>([])
-const file = ref<File>()
+const file = ref<File[]>([])
 
 /* ---------- fetch ---------- */
 
@@ -52,9 +53,7 @@ watch(
 
 const editModal = ref(false)
 
-const onClientSaved = (updated: Client) => {
-  client.value = updated
-}
+
 
 /* ---------- delete ---------- */
 
@@ -82,12 +81,48 @@ const handleClientDelete = async () => {
 }
 
 /* ---------- Upload ----------- */
-const handleUpload = async (e : Event) => {
-  const input = e.target as HTMLInputElement;
+const errorMessageFile = ref<string | null>()
 
+const handleUpload = async (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const selectedFile = Array.from(input?.files || [])
 
+  const validFiles = selectedFile.filter((file) => {
+    const sizeInMB = file.size / (1024 * 1024)
+    if (sizeInMB > config.maxFileSizeMB) {
+      errorMessageFile.value = `File ${file.name} exceeds the ${config.maxFileSizeMB} MB max file size.`
+      return false
+    } else {
+      return true
+    }
+  })
 
+  file.value = file.value.concat(validFiles)
 
+  if (!file.value[0]) {
+    return
+  }
+
+  try {
+    const client_id = String(route.params.id)
+    const fileFormData = new FormData()
+    const params = new URLSearchParams()
+    params.append('name', file.value[0].name)
+    params.append('client_id', client_id)
+    params.append('doc_type', 'report')
+
+    fileFormData.append('file', file.value[0])
+    const response = await api.post('/documents/upload/', fileFormData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      params: params,
+    })
+
+    if (response.status == 201) {
+      console.log('SUCCESS FILE UPLOADED.')
+    }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 /* ---------- helpers ---------- */
@@ -155,34 +190,32 @@ const formatDate = (value: string) =>
               @change="handleUpload"
               id="file-input"
               type="file"
-              accept="application/pdf, "
+              accept="application/pdf, .doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document, "
               hidden="hidden"
             />
           </div>
         </header>
+          <ul v-if="documents.length" class="space-y-1 overflow-y-auto max-h-64">
+            <li
+              v-for="doc in documents"
+              :key="doc.id"
+              class="flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-background"
+            >
+              <FileText class="h-5 w-5 shrink-0 text-foreground/50" />
 
-        <ul v-if="documents.length" class="space-y-1">
-          <li
-            v-for="doc in documents"
-            :key="doc.id"
-            class="flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-background"
-          >
-            <FileText class="h-5 w-5 shrink-0 text-foreground/50" />
-
-            <div class="min-w-0 flex-1">
-              <a
-                :href="doc.file"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="block truncate text-sm font-semibold hover:underline"
-              >
-                {{ doc.name }}{{ doc.extension_type }}
-              </a>
-              <p class="mt-0.5 text-xs text-foreground/60">{{ formatDate(doc.created_at) }}</p>
-            </div>
-          </li>
-        </ul>
-
+              <div class="min-w-0 flex-1">
+                <a
+                  :href="doc.file"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="block truncate text-sm font-semibold hover:underline"
+                >
+                  {{ doc.name }}
+                </a>
+                <p class="mt-0.5 text-xs text-foreground/60">{{ formatDate(doc.created_at) }}</p>
+              </div>
+            </li>
+          </ul>
         <p v-else class="py-8 text-center text-sm text-foreground/60">No documents...</p>
       </section>
     </div>
@@ -208,7 +241,7 @@ const formatDate = (value: string) =>
         type="text"
         :placeholder="client?.name"
         autocomplete="off"
-        class="mt-3 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm transition placeholder:text-foreground/40 focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/40"
+        class="mt-3 w-full rounded-lg border  bg-surface px-3 py-2 text-sm transition placeholder:text-foreground/40 focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/40"
         @keyup.enter="handleClientDelete"
       />
 
