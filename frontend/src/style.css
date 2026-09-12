@@ -1,0 +1,66 @@
+/* src/style.css */
+@import "tailwindcss";
+
+
+:root {
+  --palette-slate-grey: #717c89;
+  --palette-cool-steel: #8aa2a9;
+  --palette-muted-teal: #90baad;
+  --palette-celadon: #a1e5ab;
+  --palette-light-green: #adf6b1;
+
+  /* neutre adăugate: paleta nu are un ton foarte închis sau foarte deschis */
+  --palette-ink: #1f2a30;
+  --palette-paper: #f5f8f7;
+  --palette-white: #ffffff;
+
+  /* roșu temperat, desaturat ca să se împace cu verdele paletei */
+  --palette-clay: #a8443b;
+  --palette-clay-dark: #8f3a32;
+
+  /* variante închise pentru hover */
+  --palette-muted-teal-dark: #7aa89a;
+  --palette-celadon-dark: #8bd396;
+}
+
+/* 2. Roluri semantice: doar acestea generează clase Tailwind */
+@theme inline {
+  /* fundalul aplicației și textul de bază */
+  --color-background: var(--palette-paper);
+  --color-foreground: var(--palette-ink);
+
+
+  /* carduri, panouri, modale */
+  --color-surface: var(--palette-white);
+  --color-border: var(--palette-cool-steel);
+
+  /* sidebar */
+  --color-sidebar: var(--palette-slate-grey);
+  --color-sidebar-foreground: var(--palette-white);
+
+  /* acțiunea principală: butoane, link-uri, focus */
+  --color-primary: var(--palette-muted-teal);
+  --color-primary-foreground: var(--palette-ink);
+
+  /* evidențieri: item activ în meniu, badge-uri */
+  --color-accent: var(--palette-celadon);
+  --color-accent-foreground: var(--palette-ink);
+
+  /* mesaje de succes, stări „salvat” */
+  --color-success: var(--palette-light-green);
+  --color-success-foreground: var(--palette-ink);
+
+  --color-primary-hover: var(--palette-muted-teal-dark);
+  --color-accent-hover: var(--palette-celadon-dark);
+
+  /* acțiuni distructive: delete, revoke, cancel */
+  --color-destructive: var(--palette-clay);
+  --color-destructive-foreground: var(--palette-white);
+  --color-destructive-hover: var(--palette-clay-dark);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}

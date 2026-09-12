@@ -1,8 +1,9 @@
 from datetime import datetime, UTC
-from typing import Literal
+from typing import Literal, Annotated
 
 from fastapi import UploadFile
 from pydantic import BaseModel, Field, EmailStr, SecretStr, ConfigDict
+
 
 
 class UserBase(BaseModel):
@@ -11,7 +12,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=50)
 
 
 class UserPublic(BaseModel):

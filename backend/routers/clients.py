@@ -73,10 +73,10 @@ async def get_client(
             detail="Client was not found"
         )
 
-    if client.created_by != current_user.id:
+    if client.created_by.id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No client with the current id= {client_id}"
+            detail=f"No client with the current id: {client_id}"
         )
     
     return client

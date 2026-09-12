@@ -1,8 +1,12 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import LayoutComponent from '@/components/LayoutComponent.vue'
+</script>
 
 <template>
-  <div>
-
+  <div class="bg-background">
+    <LayoutComponent>
+      <RouterView />
+    </LayoutComponent>
   </div>
 </template>
 
