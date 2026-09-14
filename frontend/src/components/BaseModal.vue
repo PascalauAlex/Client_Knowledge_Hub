@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { X } from 'lucide-vue-next'
 
-defineProps<{ title: string; description?: string }>()
+defineProps<{ title: string; description?: string, entity? : object | null }>()
 
 const open = defineModel<boolean>({ required: true })
 const dialog = ref<HTMLDialogElement | null>(null)

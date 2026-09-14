@@ -8,7 +8,11 @@ import router from '@/router'
 import type { Client } from '@/types/client.ts'
 
 const clients = ref<Client[]>([])
+
+
+
 const columns: Column<Client>[] = [
+  { key: 'id' , label:'No.' },
   { key: 'name', label: 'Name' },
   { key: 'email', label: 'Email' },
   { key: 'created_by', label: 'Created By' },
@@ -38,15 +42,16 @@ onMounted(async () => {
   <div>
     <ActionBar>
       <template #default>
-        <DefaultButton>
-          Add Client
-        </DefaultButton>
+        <DefaultButton> Add Client </DefaultButton>
       </template>
     </ActionBar>
     <div class="mt-10">
       <TableComponent :columns="columns" :rows="clients" row-key="id" @row-click="goToClient">
         <template #cell-name="{ row }">
-          <RouterLink :to="{ name: 'SingleClient', params: { id: row.id } }" class="hover:text-white">
+          <RouterLink
+            :to="{ name: 'SingleClient', params: { id: row.id } }"
+            class="hover:text-white"
+          >
             {{ row.name }}
           </RouterLink>
         </template>

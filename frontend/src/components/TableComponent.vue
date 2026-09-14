@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends Record<string, any>">
-import { useRouter } from 'vue-router'
+
 
 export interface Column<R> {
   key: keyof R & string

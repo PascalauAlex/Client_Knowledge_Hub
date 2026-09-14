@@ -1,11 +1,11 @@
-
+import type { Axios } from 'axios'
 
 
 export function setAccessToken (access_token : string) : void {
-  if (!access_token){
+  if(!access_token){
     return
   }
-  localStorage.setItem("access_token",access_token)
+  localStorage.setItem('access_token', access_token)
 }
 
 export function getAccessToken(): string{

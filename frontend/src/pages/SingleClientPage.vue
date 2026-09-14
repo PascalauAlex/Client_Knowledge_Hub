@@ -53,11 +53,9 @@ watch(
 
 const editModal = ref(false)
 
-
-
 /* ---------- delete ---------- */
 
-const deleteModal = ref(false)
+const deleteModal = ref<boolean>(false)
 const confirmName = ref('')
 const deleting = ref(false)
 
@@ -122,6 +120,55 @@ const handleUpload = async (e: Event) => {
     }
   } catch (err) {
     console.error(err)
+  }
+}
+
+/* ---------- Delete document ------- */
+
+const documentModalActive = ref<boolean>(false)
+const documentToDelete = ref<Documents | null>(null)
+const deletingDocument = ref<boolean>(false)
+const documentDeleteConfirmation = ref<string>('')
+
+const activateDocumentDeleteModal = (document: Documents) => {
+  documentToDelete.value = document
+  documentModalActive.value = true
+}
+
+const canDeleteDocument = computed(() => {
+  const doc = documentToDelete.value
+  if (!doc) return false
+  return (
+    documentDeleteConfirmation.value.trim() === doc.name + doc.extension_type &&
+    !deletingDocument.value
+  )
+})
+
+watch(documentModalActive, (open) => {
+  if (!open) {
+    documentDeleteConfirmation.value = ''
+    documentToDelete.value = null
+  }
+})
+
+const handleDocumentDelete = async () => {
+  const doc = documentToDelete.value
+  if (!doc || !canDeleteDocument.value) return
+
+  deletingDocument.value = true
+  try {
+    await api.delete('/documents/delete', {
+      params:{
+        "document_id" : doc.id,
+        "client_id":client.value?.id
+      }
+    })
+    documents.value = documents.value.filter((d) => d.id !== doc.id)
+    documentModalActive.value = false
+  } catch (err) {
+    console.error(err)
+  } finally {
+    deletingDocument.value = false
   }
 }
 
@@ -195,27 +242,35 @@ const formatDate = (value: string) =>
             />
           </div>
         </header>
-          <ul v-if="documents.length" class="space-y-1 overflow-y-auto max-h-64">
-            <li
-              v-for="doc in documents"
-              :key="doc.id"
-              class="flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-background"
-            >
-              <FileText class="h-5 w-5 shrink-0 text-foreground/50" />
+        <ul v-if="documents.length" class="space-y-1 overflow-y-auto max-h-64">
+          <li
+            v-for="doc in documents"
+            :key="doc.id"
+            class="flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-background"
+          >
+            <FileText class="h-5 w-5 shrink-0 text-foreground/50" />
 
-              <div class="min-w-0 flex-1">
-                <a
-                  :href="doc.file"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="block truncate text-sm font-semibold hover:underline"
-                >
-                  {{ doc.name }}
-                </a>
-                <p class="mt-0.5 text-xs text-foreground/60">{{ formatDate(doc.created_at) }}</p>
-              </div>
-            </li>
-          </ul>
+            <div class="min-w-0 flex-1">
+              <a
+                :href="doc.file"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block truncate text-sm font-semibold hover:underline"
+              >
+                {{ doc.name }}
+              </a>
+              <p class="mt-0.5 text-xs text-foreground/60">{{ formatDate(doc.created_at) }}</p>
+            </div>
+            <div class="mr-5">
+              <button
+                @click="activateDocumentDeleteModal(doc)"
+                class="text-red-500 hover:bg-red-50 transition cursor-pointer border-2 border-red-500 p-2 rounded-lg"
+              >
+                <Trash />
+              </button>
+            </div>
+          </li>
+        </ul>
         <p v-else class="py-8 text-center text-sm text-foreground/60">No documents...</p>
       </section>
     </div>
@@ -241,7 +296,7 @@ const formatDate = (value: string) =>
         type="text"
         :placeholder="client?.name"
         autocomplete="off"
-        class="mt-3 w-full rounded-lg border  bg-surface px-3 py-2 text-sm transition placeholder:text-foreground/40 focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/40"
+        class="mt-3 w-full rounded-lg border bg-surface px-3 py-2 text-sm transition placeholder:text-foreground/40 focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/40"
         @keyup.enter="handleClientDelete"
       />
 
@@ -258,6 +313,53 @@ const formatDate = (value: string) =>
           {{ deleting ? 'Deleting...' : 'Delete' }}
         </DefaultButton>
       </template>
+    </BaseModal>
+
+    <!-- Delete Document Modal -->
+    <BaseModal
+      v-if="documentToDelete"
+      v-model="documentModalActive"
+      title="Delete document"
+      description="Deleted documents cannot be restored after this procedure."
+      :entity="documentToDelete"
+    >
+      <h1 class="font-semibold">
+        Are you sure that you want to delete
+        <span class="font-bold text-2xl"
+          >{{ documentToDelete.name }}{{ documentToDelete.extension_type }}?</span
+        >
+      </h1>
+      <div class="mt-2">
+        <p>
+          To confirm deletion please write
+          <span class="italic"
+            >'{{ documentToDelete.name }}{{ documentToDelete.extension_type }}'</span
+          >.
+        </p>
+        <input
+          v-model="documentDeleteConfirmation"
+          class="mt-5 border border-border rounded-lg p-2"
+          type="text"
+          autocomplete="off"
+          :placeholder="'Write: ' + documentToDelete.name + documentToDelete.extension_type"
+          @keyup.enter="handleDocumentDelete"
+        />
+        <button
+          class="ml-2 border border-border hover:border-white hover:bg-border p-2 rounded-lg hover:text-white"
+          :disabled="deletingDocument"
+          @click="documentModalActive = false"
+        >
+          CANCEL
+        </button>
+        <DefaultButton
+          class="ml-2"
+          style-type="danger"
+          :disabled="!canDeleteDocument"
+          @click="handleDocumentDelete"
+        >
+          {{ deletingDocument ? 'Deleting...' : 'Delete' }}
+        </DefaultButton>
+      </div>
     </BaseModal>
   </div>
 </template>
