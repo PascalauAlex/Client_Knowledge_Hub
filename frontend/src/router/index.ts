@@ -7,6 +7,7 @@ import SignupPage from '@/pages/AuthPages/SignupPage.vue'
 import DocumentsPage from '@/pages/DocumentsPage.vue'
 import SingleClientPage from '@/pages/SingleClientPage.vue'
 import ForgotPasswordPage from '@/pages/AuthPages/ForgotPasswordPage.vue'
+import ResetPasswordPage from '@/pages/AuthPages/ResetPasswordPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,24 +37,25 @@ const router = createRouter({
       name: 'Login',
       meta: { title: 'Login' },
     },
-    { path: '/sign-up',
-      component: SignupPage,
-      name: 'Signup',
-      meta: { title: 'Signup' } },
+    { path: '/sign-up', component: SignupPage, name: 'Signup', meta: { title: 'Signup' } },
     {
       path: '/forgot-password',
-      component:ForgotPasswordPage,
+      component: ForgotPasswordPage,
       name: 'ForgotPassword',
-      meta: {title : 'ForgotPassword'},
+      meta: { title: 'ForgotPassword' },
     },
     {
-      path : '/client/:id',
-      component:SingleClientPage,
-      name:'SingleClient',
-      meta:{title: 'Client',
-        requiresAuth: true}
+      path: '/client/:id',
+      component: SingleClientPage,
+      name: 'SingleClient',
+      meta: { title: 'Client', requiresAuth: true },
     },
-
+    {
+      path: '/reset-password',
+      component : ResetPasswordPage,
+      name: 'ResetPassword',
+      meta: {title : 'ResetPassword'},
+    },
   ],
 })
 

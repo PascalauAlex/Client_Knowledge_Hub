@@ -68,8 +68,8 @@ const handleSubmit = async () => {
 
 <template>
   <div class="grid min-h-full place-items-center">
-    <div class="flex bg-sidebar-foreground p-10 rounded-2xl justify-center w-2/3">
-      <div class="w-4xl">
+    <div class="flex bg-sidebar-foreground p-10 rounded-2xl justify-center">
+      <div class="w-5xl">
         <h1 class="text-2xl font-semibold">Create your account</h1>
         <p>Sign up with your email and a password to start managing your clients!</p>
         <section>

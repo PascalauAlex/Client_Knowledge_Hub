@@ -16,18 +16,24 @@ interface ResponseData {
   token_type: string
 }
 
-const router = useRouter();
+const router = useRouter()
 
 const handleSubmit = async () => {
   const formData = new URLSearchParams()
-  console.log(email.value)
+
   formData.append('username', email.value)
   formData.append('password', password.value)
   try {
     isLoading.value = true
     const response = await api.post('/users/token', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      validateStatus: function (status) {
+        return status < 500 // Resolve only if the status code is less than 500
+      },
     })
+    if (response.status == 401) {
+      error.value = response.data.detail
+    }
 
     const { access_token, token_type }: ResponseData = response.data
     if (access_token && token_type) {
@@ -35,8 +41,7 @@ const handleSubmit = async () => {
       router.push({ name: 'Dashboard' })
     }
   } catch (err) {
-    error.value = String(err)
-    console.error()
+    console.error(err)
   } finally {
     isLoading.value = false
   }
@@ -81,7 +86,7 @@ const handleSubmit = async () => {
         <RouterLink :to="{ name: 'Signup' }" class="text-primary hover:underline cursor-pointer"
           >You don't have an account?</RouterLink
         >
-        <span>{{ error }}</span>
+        <span class="text-red-700 font-semibold mt-2">{{ error }}</span>
       </form>
     </div>
   </div>
