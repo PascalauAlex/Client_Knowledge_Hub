@@ -192,10 +192,8 @@ async def get_document_summary(document_id: int, db: DbSession, current_user : C
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="The ")
 
 
+
     return summary
-
-
-
 
 
 

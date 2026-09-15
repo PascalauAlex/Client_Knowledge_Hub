@@ -83,7 +83,7 @@ const handleSubmit = async () => {
             <dt class="font-medium text-foreground">Password</dt>
             <dd class="ms-0 text-muted-foreground">Min length: 8 characters.</dd>
             <dd class="ms-0 text-muted-foreground">
-              At least one of special characters [ {{ SPECIAL_CHARS }} ].
+              At least one of special characters.
             </dd>
             <dd class="ms-0 text-muted-foreground">At least one uppercase character.</dd>
           </dl>

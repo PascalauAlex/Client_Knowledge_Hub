@@ -1,21 +1,26 @@
 import os
 import tempfile
-from contextlib import contextmanager, AbstractContextManager
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Literal
 from langchain_text_splitters import  RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, UnstructuredWordDocumentLoader, UnstructuredExcelLoader
-from setuptools import find_namespace_packages
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, defer
+
 from config import settings
 from langchain_core.documents import Document
 import models
 from openai import AsyncOpenAI
 import tiktoken
 from sqlalchemy import select
+from schemas import DocumentChunkOut, LLMResponse, ChatSource, ChatTurn, ChatResponse
+from utils.documents_utils import ACCEPTED_MIME
+from utils.image_utils import create_presigned_url
 
 collection_name = "document_chunks"
 
+openai_client = AsyncOpenAI(api_key=settings.openai_key)
 
 @contextmanager
 def generate_temp_file(file_bytes: bytes, extension: str):
@@ -35,8 +40,6 @@ class DocumentLoader:
     file_bytes : bytes
 
     def load_document(self) -> list[Document] | None:
-
-
         match self.extension:
             case ".pdf":
                 with generate_temp_file(file_bytes=self.file_bytes, extension=self.extension) as tmp_file:
@@ -122,8 +125,8 @@ async def save_embeddings(db,
 
 async def retrieve_chunks(
         db:AsyncSession,
-        query:str,
-        client_id:int,
+        query: str,
+        client_id: int,
         top_k : int = 3
 )->list[models.DocumentChunk]:
     client = AsyncOpenAI(api_key=settings.openai_key)
@@ -133,12 +136,20 @@ async def retrieve_chunks(
 
     stmt = (
         select(models.DocumentChunk)
+        .options(
+            #many-to-one : a single JOIN, no row multiplication
+            joinedload(models.DocumentChunk.document),
+            defer(models.DocumentChunk.embedding)
+        )
         .where(models.DocumentChunk.client_id == client_id)
         .order_by(models.DocumentChunk.embedding.cosine_distance(query_embedding))
         .limit(top_k)
     )
-    result = await db.execute(stmt)
-    return result.scalars().all()
+
+    content = await db.execute(stmt)
+    content = content.scalars().all()
+
+    return list(content)
 
 
 SYSTEM_PROMPT = """You are a document assistant that answers questions about a specific client's documents.
@@ -147,31 +158,71 @@ Your rules:
 - Answer EXCLUSIVELY based on the context provided below. The context consists of excerpts retrieved from the client's documents.
 - If the answer is not contained in the context, say clearly that the information is not available in the documents. Do not guess, and do not use outside knowledge to fill gaps.
 - Do not invent facts, figures, dates, or names that are not present in the context.
-- When you state a fact, cite its source using the document and page provided with each excerpt (e.g. "according to document 16, page 2").
+- When you state a fact, cite its source using the document title and page given in the header of each excerpt (e.g. "according to Annual report 2024, page 2").
 - If the context contains conflicting information, point out the conflict rather than choosing one silently.
 - Keep answers concise and grounded in the text. Quote short phrases from the context when precision matters.
 - Answer in the same language as the user's question."""
 
-async def generate_answer(db, query: str, client_id: int, top_k: int = 5) -> str:
+NO_CONTEXT_ANSWER = "I couldn't find anything relevant to this question in this client's documents."
+
+
+def format_context(chunks: list[models.DocumentChunk]) -> str:
+    parts = []
+    for chunk in chunks:
+        page = chunk.page if chunk.page is not None else "n/a"
+        parts.append(f'[document "{chunk.document.name}", page {page}]\n{chunk.text}')
+    return "\n\n".join(parts)
+
+EXTENSION_TO_MIME = {ext: mime for mime, ext in ACCEPTED_MIME.items()}
+FALLBACK_MIME = "application/octet-stream"
+
+def build_sources(chunks: list[models.DocumentChunk]) -> list[ChatSource]:
+    # Several chunks can come from the same document: keep one source per
+    # document, in order of first appearance (= best distance).
+    sources: dict[int, ChatSource] = {}
+    for chunk in chunks:
+        doc = chunk.document
+        if doc.id in sources:
+            continue
+        sources[doc.id] = ChatSource(
+            id=doc.id,
+            title=doc.name,
+            url=create_presigned_url(
+                object_name=doc.file,
+                response_type=EXTENSION_TO_MIME.get(doc.extension_type, FALLBACK_MIME),
+            ),
+        )
+    return list(sources.values())
+
+
+async def generate_answer(
+        db: AsyncSession,
+        query: str,
+        client_id: int,
+        history: list[ChatTurn] | None = None,
+        top_k: int = 5,
+) -> ChatResponse:
     chunks = await retrieve_chunks(db=db, query=query, client_id=client_id, top_k=top_k)
     if not chunks:
-        return "The's no answer for this query!"
+        return ChatResponse(answer=NO_CONTEXT_ANSWER)
 
-    context = "\n\n".join(
-        f"[document {c.document_id}, page {c.page}]\n{c.text}" for c in chunks
-    )
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        # Earlier turns come from the browser: untrusted, already length-capped by ChatRequest.
+        *({"role": t.role, "content": t.content} for t in (history or [])),
+        {"role": "user", "content": f"Context:\n{format_context(chunks)}\n\nQuery: {query}"},
+    ]
 
-    client = AsyncOpenAI(api_key=settings.openai_key)
-    response = await client.chat.completions.create(
+    response = await openai_client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuery: {query}"},
-        ],
+        messages=messages,
         temperature=0,
     )
-    return response.choices[0].message.content
 
+    return ChatResponse(
+        answer=response.choices[0].message.content or NO_CONTEXT_ANSWER,
+        sources=build_sources(chunks),
+    )
 
 
 

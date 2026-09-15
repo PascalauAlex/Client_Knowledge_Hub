@@ -4,7 +4,6 @@ import ClientsPage from '@/pages/ClientsPage.vue'
 import AccountPage from '@/pages/AccountPage.vue'
 import LoginPage from '@/pages/AuthPages/LoginPage.vue'
 import SignupPage from '@/pages/AuthPages/SignupPage.vue'
-import DocumentsPage from '@/pages/DocumentsPage.vue'
 import SingleClientPage from '@/pages/SingleClientPage.vue'
 import ForgotPasswordPage from '@/pages/AuthPages/ForgotPasswordPage.vue'
 import ResetPasswordPage from '@/pages/AuthPages/ResetPasswordPage.vue'
@@ -24,12 +23,6 @@ const router = createRouter({
       component: AccountPage,
       name: 'Account',
       meta: { title: 'Account', requiresAuth: true },
-    },
-    {
-      path: '/documents',
-      component: DocumentsPage,
-      name: 'Documents',
-      meta: { title: 'Documents', requiresAuth: true },
     },
     {
       path: '/log-in',

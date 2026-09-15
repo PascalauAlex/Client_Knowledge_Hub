@@ -2,7 +2,7 @@
 import type { Component } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import {
-  FileText,
+
   LayoutDashboard,
   Search,
   Settings,
@@ -25,7 +25,7 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard },
   { label: 'Clients', to: '/clients', icon: Users },
-  { label: 'Documents', to: '/documents', icon: FileText },
+
   { label: 'Search', to: '/search', icon: Search },
   { label: 'Account', to: '/account', icon: CircleUser },
 ]
@@ -50,7 +50,7 @@ function linkClass(to: string): string {
 
 const logout = () => {
   deleteAccessToken()
-  router.push('/')
+  router.push({name: 'Login'})
 }
 
 function logOutClass(to : string): string{

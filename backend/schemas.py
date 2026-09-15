@@ -1,9 +1,8 @@
-from datetime import datetime, UTC
+from datetime import datetime
 from typing import Literal, Annotated
+from pydantic import BaseModel, Field, EmailStr,  ConfigDict
 
-from fastapi import UploadFile
-from pydantic import BaseModel, Field, EmailStr, SecretStr, ConfigDict
-
+import models
 
 
 class UserBase(BaseModel):
@@ -25,6 +24,7 @@ class UserPublic(BaseModel):
 
 class UserPrivate(UserPublic):
     email: EmailStr
+    created_at : datetime
 
 
 class UserUpdate(BaseModel):
@@ -36,7 +36,6 @@ class UserUpdate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-
 
 
 class ClientBase(BaseModel):
@@ -60,6 +59,10 @@ class ClientUpdate(ClientBase):
 
 
 
+
+
+
+
 class DocumentBase(BaseModel):
     name: str = Field(min_length=3, max_length=250)
 
@@ -71,17 +74,41 @@ class DocumentResponse(DocumentBase):
     created_at : datetime
     extension_type : str
 
+class LLMResponse(DocumentResponse):
+    source : str
+    text : str
+
+
 class DocumentChunkOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id : int
     document_id : int
+    document : DocumentResponse
+    client_id : int
     chunk_index : int
     page : int | None
     text : str
 
 
-class TagBase(BaseModel):
-    pass
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    history: list[ChatTurn] = Field(default_factory=list, max_length=20)
+
+
+class ChatSource(BaseModel):
+    id: int
+    title: str
+    url: str | None = None
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    sources: list[ChatSource] = Field(default_factory=list)
 
 
 

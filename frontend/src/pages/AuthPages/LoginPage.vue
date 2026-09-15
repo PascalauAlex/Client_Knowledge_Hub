@@ -86,6 +86,7 @@ const handleSubmit = async () => {
         <RouterLink :to="{ name: 'Signup' }" class="text-primary hover:underline cursor-pointer"
           >You don't have an account?</RouterLink
         >
+        <br>
         <span class="text-red-700 font-semibold mt-2">{{ error }}</span>
       </form>
     </div>

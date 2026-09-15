@@ -10,6 +10,7 @@ import BaseModal from '@/components/BaseModal.vue'
 import type { Client } from '@/types/client.ts'
 import type { Documents } from '@/types/documents.ts'
 import config from '../config'
+import ChatComponent from '@/components/ChatComponent.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +18,7 @@ const router = useRouter()
 const client = ref<Client>()
 const documents = ref<Documents[]>([])
 const file = ref<File[]>([])
+const client_id = ref(Number(route.params.id))
 
 /* ---------- fetch ---------- */
 
@@ -158,10 +160,10 @@ const handleDocumentDelete = async () => {
   deletingDocument.value = true
   try {
     await api.delete('/documents/delete', {
-      params:{
-        "document_id" : doc.id,
-        "client_id":client.value?.id
-      }
+      params: {
+        document_id: doc.id,
+        client_id: client.value?.id,
+      },
     })
     documents.value = documents.value.filter((d) => d.id !== doc.id)
     documentModalActive.value = false
@@ -361,6 +363,9 @@ const formatDate = (value: string) =>
         </DefaultButton>
       </div>
     </BaseModal>
+    <div class="mt-10">
+      <ChatComponent :client-id="client_id"></ChatComponent>
+    </div>
   </div>
 </template>
 
