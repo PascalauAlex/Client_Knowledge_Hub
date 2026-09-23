@@ -31,13 +31,13 @@ def process_document(content : bytes) -> tuple[bytes,str, str | None] | None:
 
     return output.read() ,filename, extension
 
-def delete_document_from_disk(document_name: str) -> None:
-    if document_name is None:
-        return
-    document_path = DOCUMENT_DIR / document_name
-    if document_path.exists():
-        document_path.unlink()
-
+# def delete_document_from_disk(document_name: str) -> None:
+#     if document_name is None:
+#         return
+#     document_path = DOCUMENT_DIR / document_name
+#     if document_path.exists():
+#         document_path.unlink()
+#
 
 
 

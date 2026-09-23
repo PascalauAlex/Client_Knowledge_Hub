@@ -4,7 +4,6 @@ from fastapi import FastAPI, UploadFile , HTTPException, status, Request, Respon
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
-from sympy.polys.subresultants_qq_zz import res
 from database import DbSession
 from database import  engine
 from routers import users, clients, documents

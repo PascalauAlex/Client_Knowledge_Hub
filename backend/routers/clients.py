@@ -9,9 +9,9 @@ from sqlalchemy import select, delete as sql_delete
 from models import Client
 from schemas import ClientCreate, ClientResponse, ClientUpdate, DocumentResponse, DocumentChunkOut
 from utils.auth import CurrentUser
-from utils.documents_utils import delete_document_from_disk, ACCEPTED_MIME
-from utils.image_utils import create_presigned_url
-
+from utils.documents_utils import  ACCEPTED_MIME
+from utils.image_utils import create_presigned_url, delete_document_s3
+from botocore.exceptions import ClientError
 router = APIRouter(prefix="",tags=["clients"])
 
 
@@ -126,7 +126,13 @@ async def delete_client(client_id : int, db: DbSession, current_user: CurrentUse
     await db.commit()
 
     for doc in documents:
-        await run_in_threadpool(delete_document_from_disk,doc.file)
+        try:
+            await delete_document_s3(filename=doc.name)
+            await db.execute(sql_delete(models.Document).where(models.Document.id == doc.id))
+        except ClientError as err:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,detail=f"Error while deleting document :{doc.name} from S3. Error:{err}")
+
+
 
     return {"message":"Client and related documents were removed"}
 
