@@ -14,10 +14,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 PROFILE_PICS_DIR = BASE_DIR / "static" / "profile_pics"
 
 
-
 def create_presigned_url(
-        object_name, bucket_name = settings.s3_bucket_name, region_name = settings.s3_region, expiration =3600, response_type : str = "image/jpeg"
-)->str | None:
+    object_name,
+    bucket_name=settings.s3_bucket_name,
+    region_name=settings.s3_region,
+    expiration=3600,
+    response_type: str = "image/jpeg",
+) -> str | None:
     """Generate a presigned URL to share an S3 object
 
     :param response_type:
@@ -29,27 +32,32 @@ def create_presigned_url(
     """
 
     s3_client = boto3.client(
-        's3',
+        "s3",
         region_name=region_name,
-        aws_secret_access_key=(settings.s3_secret_access_key.get_secret_value()
-                                   if settings.s3_secret_access_key
-                                   else None),
-        aws_access_key_id=(settings.s3_access_key_id.get_secret_value()
-                           if settings.s3_secret_access_key
-                           else None),
+        aws_secret_access_key=(
+            settings.s3_secret_access_key.get_secret_value()
+            if settings.s3_secret_access_key
+            else None
+        ),
+        aws_access_key_id=(
+            settings.s3_access_key_id.get_secret_value()
+            if settings.s3_secret_access_key
+            else None
+        ),
         config=Config(
-            signature_version='s3v4',
-            s3={'addressing_style': 'virtual'},
+            signature_version="s3v4",
+            s3={"addressing_style": "virtual"},
         ),
     )
 
     try:
         response = s3_client.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': bucket_name,
-                    'Key': object_name,
-                    'ResponseContentType':response_type
-                    },
+            "get_object",
+            Params={
+                "Bucket": bucket_name,
+                "Key": object_name,
+                "ResponseContentType": response_type,
+            },
             ExpiresIn=expiration,
         )
     except ClientError as e:
@@ -58,7 +66,6 @@ def create_presigned_url(
 
         # The response contains the presigned URL
     return response
-
 
 
 def process_profile_image(content: bytes) -> tuple[bytes, str]:
@@ -78,6 +85,7 @@ def process_profile_image(content: bytes) -> tuple[bytes, str]:
 
     return output.read(), filename
 
+
 def _upload_to_s3(file_bytes: bytes, key: str) -> None:
     s3 = _get_s3_client()
     s3.upload_fileobj(
@@ -87,21 +95,20 @@ def _upload_to_s3(file_bytes: bytes, key: str) -> None:
         ExtraArgs={"ContentType": "image/jpeg"},
     )
 
-def _delete_from_s3(key:str)->None:
-    s3 = _get_s3_client()
-    s3.delete_object(Bucket=settings.s3_bucket_name,Key=key)
 
-#Wrappers for synchron functions to run async
-async def upload_file_s3(file_bytes : bytes, filename:str)->None:
+def _delete_from_s3(key: str) -> None:
+    s3 = _get_s3_client()
+    s3.delete_object(Bucket=settings.s3_bucket_name, Key=key)
+
+
+# Wrappers for synchron functions to run async
+async def upload_file_s3(file_bytes: bytes, filename: str) -> None:
     key = f"files/{filename}"
-    await run_in_threadpool(_upload_to_s3,file_bytes,key)
+    await run_in_threadpool(_upload_to_s3, file_bytes, key)
 
 
 async def delete_document_s3(filename: str | None) -> None:
     if filename is None:
         return
     key = f"files/{filename}"
-    await run_in_threadpool(_delete_from_s3,key)
-
-
-
+    await run_in_threadpool(_delete_from_s3, key)

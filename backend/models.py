@@ -7,7 +7,6 @@ from config import settings
 from pgvector.sqlalchemy import Vector
 
 
-
 class Base(DeclarativeBase):
     pass
 
@@ -15,17 +14,22 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    username : Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    email : Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    password_hash : Mapped[str] = mapped_column(String(200), nullable=False)
-    created_at : Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda : datetime.now(tz=UTC)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=UTC)
     )
-    created_clients : Mapped[list["Client"]] = relationship(back_populates="created_by", cascade="all, delete-orphan")
-    image_file : Mapped[str | None] = mapped_column(String(200),nullable=True,default=None)
-    reset_token : Mapped[list[PasswordResetToken]] = relationship(back_populates="user",cascade="all, delete-orphan")
+    created_clients: Mapped[list["Client"]] = relationship(
+        back_populates="created_by", cascade="all, delete-orphan"
+    )
+    image_file: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, default=None
+    )
+    reset_token: Mapped[list[PasswordResetToken]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
     @property
     def image_path(self) -> str:
@@ -33,49 +37,57 @@ class User(Base):
             return f"https://{settings.s3_bucket_name}.s3.{settings.s3_region}.amazonaws.com/profile_pics/{self.image_file}"
         return "/static/profile_pics/default.jpg"
 
-
     def __repr__(self) -> str:
-        return (f"User(id={self.id}, "
-                f"username={self.username}, "
-                f"email={self.email}, "
-                f"password_hash={self.password_hash}, "
-                f"created_at={self.created_at}, "
-                f"created_clients={self.created_clients}, "
-                f"image_file={self.image_file}, "
-                f"reset_token={self.reset_token}")
+        return (
+            f"User(id={self.id}, "
+            f"username={self.username}, "
+            f"email={self.email}, "
+            f"password_hash={self.password_hash}, "
+            f"created_at={self.created_at}, "
+            f"created_clients={self.created_clients}, "
+            f"image_file={self.image_file}, "
+            f"reset_token={self.reset_token}"
+        )
+
 
 class Client(Base):
     __tablename__ = "clients"
-    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name : Mapped[str] = mapped_column(String(150),unique=True,nullable=False)
-    email : Mapped[str] = mapped_column(String(120), unique=True)
-    created_at : Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda : datetime.now(tz=UTC)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=UTC)
     )
-    created_by_id : Mapped[int] = mapped_column(ForeignKey("users.id",ondelete="CASCADE"))
-    created_by : Mapped["User"] = relationship(back_populates="created_clients")
-    documents : Mapped[list["Document"]] = relationship(back_populates="client", cascade="all, delete-orphan")
-
+    created_by_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    created_by: Mapped["User"] = relationship(back_populates="created_clients")
+    documents: Mapped[list["Document"]] = relationship(
+        back_populates="client", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         pass
+
 
 class Document(Base):
     __tablename__ = "documents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    type : Mapped[Literal["invoice","contract","report"]] = mapped_column(String(100),nullable=False)
-    name : Mapped[str] = mapped_column(String(250),nullable=False)
-    created_at : Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda : datetime.now(tz=UTC)
+    type: Mapped[Literal["invoice", "contract", "report"]] = mapped_column(
+        String(100), nullable=False
     )
-    file : Mapped[str | None] = mapped_column(String(200), nullable=False)
+    name: Mapped[str] = mapped_column(String(250), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=UTC)
+    )
+    file: Mapped[str | None] = mapped_column(String(200), nullable=False)
     extension_type: Mapped[str] = mapped_column(String(10), nullable=False)
-    client_id : Mapped[int] = mapped_column(ForeignKey("clients.id",ondelete="CASCADE"))
-    client : Mapped["Client"] = relationship(back_populates="documents")
-    chunks : Mapped[list["DocumentChunk"]] = relationship(back_populates="document", cascade="all, delete-orphan")
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"))
+    client: Mapped["Client"] = relationship(back_populates="documents")
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+        back_populates="document", cascade="all, delete-orphan"
+    )
 
     @property
     def file_path(self) -> str | None:
@@ -83,23 +95,26 @@ class Document(Base):
             return f"https://{settings.s3_bucket_name}.s3.{settings.s3_region}.amazonaws.com/profile_pics/{self.file}"
         return None
 
-
     def __repr__(self) -> str:
         pass
+
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
 
-    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    document_id : Mapped[int] = mapped_column(Integer, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
-    client_id : Mapped[int] = mapped_column(Integer, ForeignKey("clients.id",ondelete="CASCADE"), nullable=False)
-    text : Mapped[str] = mapped_column(Text, nullable=False)
-    embedding : Mapped[list[float]] = mapped_column(Vector(1536))
-    document : Mapped["Document"] = relationship("Document", back_populates="chunks")
-    client : Mapped["Client"] = relationship("Client")
-    chunk_index : Mapped[int] = mapped_column(Integer, nullable=False)
-    page : Mapped[int | None] = mapped_column(Integer, nullable=True)
-
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    document_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False
+    )
+    client_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("clients.id", ondelete="CASCADE"), nullable=False
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(Vector(1536))
+    document: Mapped["Document"] = relationship("Document", back_populates="chunks")
+    client: Mapped["Client"] = relationship("Client")
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    page: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     def __repr__(self) -> str:
         pass
@@ -109,19 +124,17 @@ class PasswordResetToken(Base):
     __tablename__ = "password_reset_token"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id : Mapped[int] = mapped_column(ForeignKey("users.id",ondelete="CASCADE"),nullable=False)
-    token_hash : Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    expires_at : Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    created_at : Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default= lambda : datetime.now(tz=UTC)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
     )
-    user : Mapped[User] = relationship(back_populates="reset_token")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=UTC)
+    )
+    user: Mapped[User] = relationship(back_populates="reset_token")
 
     def __repr__(self) -> str:
         pass
-
-

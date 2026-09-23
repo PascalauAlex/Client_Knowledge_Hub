@@ -27,21 +27,18 @@ from sqlalchemy.pool import NullPool
 from database import get_db
 from main import app
 from models import Base
-pytest_plugins = ["anyio"] # One event loop for all tests
 
-
-
+pytest_plugins = ["anyio"]  # One event loop for all tests
 
 
 @pytest.fixture(scope="session")
 def anyio_backend():
-    """ Configure AnyIO to use SelectorEventLoop on Windows
-     to pass the compatibility error with psycopg3"""
+    """Configure AnyIO to use SelectorEventLoop on Windows
+    to pass the compatibility error with psycopg3"""
     if sys.platform == "win32":
-        loop_factory = lambda : asyncio.SelectorEventLoop(selectors.SelectSelector())
+        loop_factory = lambda: asyncio.SelectorEventLoop(selectors.SelectSelector())
         return ("asyncio", {"loop_factory": loop_factory})
     return "asyncio"
-
 
 
 @pytest.fixture(scope="session")
@@ -49,17 +46,18 @@ def test_engine():
     engine = create_async_engine(
         os.environ["DATABASE_URL"],
         poolclass=NullPool,
-        #echo=True # For database writes
+        # echo=True # For database writes
     )
     return engine
+
 
 @pytest.fixture(scope="session")
 async def setup_database(test_engine):
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all) # Create all the tables
+        await conn.run_sync(Base.metadata.create_all)  # Create all the tables
     yield
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all) # Drop all tables
+        await conn.run_sync(Base.metadata.drop_all)  # Drop all tables
     await test_engine.dispose()
 
 
@@ -76,7 +74,7 @@ async def db_session(
         bind=conn,
         class_=AsyncSession,
         expire_on_commit=False,
-        join_transaction_mode="create_savepoint", # savepoint not commit
+        join_transaction_mode="create_savepoint",  # savepoint not commit
     )
 
     async with test_async_session() as session:
@@ -91,10 +89,11 @@ async def db_session(
 ## Mocked AWS
 @pytest.fixture
 def mocked_aws():
-    with mock_aws(): # synchronous function
+    with mock_aws():  # synchronous function
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket=os.environ["S3_BUCKET_NAME"])
         yield s3
+
 
 ## Client Fixture
 @pytest.fixture
@@ -118,12 +117,11 @@ async def client(
 
 
 @pytest.fixture
-async def authenticated_client(client ):
+async def authenticated_client(client):
     user = await create_test_user(client)
     token = await login_user(client)
     client.headers.update(auth_header(token))
     yield client
-
 
 
 ## Auth Helpers
@@ -161,48 +159,27 @@ async def login_user(
     return response.json()["access_token"]
 
 
-
 def auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
+
 # Client fixtures
 
+
 async def create_test_client(
-        client : AsyncClient,
-        name : str = "test_client",
-        email : str = "client@test.com",
-)-> dict:
+    client: AsyncClient,
+    name: str = "test_client",
+    email: str = "client@test.com",
+) -> dict:
 
     response = await client.post(
         "/api/clients",
-        json={
-            "name":name,
-            "email":email
-        },
+        json={"name": name, "email": email},
     )
 
-    assert response.status_code == 201, f"Failed to create client with name: {name} and email: {email}\nResponse status code:{response.status_code}\nResponse text: {response.text}"
+    assert response.status_code == 201, (
+        f"Failed to create client with name: {name} and email: {email}\nResponse status code:{response.status_code}\nResponse text: {response.text}"
+    )
     client = response.json()
 
     return client
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -5,16 +5,18 @@ from io import BytesIO
 
 BASE_DIR = Path(__file__).parent.parent
 DOCUMENT_DIR = BASE_DIR / "documents"
-ACCEPTED_MIME={
-    "application/pdf":".pdf",
-    "application/msword":".doc",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":".docx",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":".xlsx"
+ACCEPTED_MIME = {
+    "application/pdf": ".pdf",
+    "application/msword": ".doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
 }
 
 
 """ Process document returning Bytes Stream, filename and extension """
-def process_document(content : bytes) -> tuple[bytes,str, str | None] | None:
+
+
+def process_document(content: bytes) -> tuple[bytes, str, str | None] | None:
     chunk = content[:2048]
     mime_type = magic.from_buffer(chunk, mime=True)
     extension = None
@@ -29,7 +31,8 @@ def process_document(content : bytes) -> tuple[bytes,str, str | None] | None:
     output = BytesIO(content)
     output.seek(0)
 
-    return output.read() ,filename, extension
+    return output.read(), filename, extension
+
 
 # def delete_document_from_disk(document_name: str) -> None:
 #     if document_name is None:
@@ -38,16 +41,3 @@ def process_document(content : bytes) -> tuple[bytes,str, str | None] | None:
 #     if document_path.exists():
 #         document_path.unlink()
 #
-
-
-
-
-
-
-
-
-
-
-
-
-

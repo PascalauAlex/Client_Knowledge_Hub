@@ -3,24 +3,29 @@ import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Literal
-from langchain_text_splitters import  RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader, UnstructuredWordDocumentLoader, UnstructuredExcelLoader
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, defer
 
-from config import settings
+from langchain_community.document_loaders import (
+    PyPDFLoader,
+    UnstructuredExcelLoader,
+    UnstructuredWordDocumentLoader,
+)
 from langchain_core.documents import Document
-import models
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from openai import AsyncOpenAI
-import tiktoken
 from sqlalchemy import select
-from schemas import DocumentChunkOut, LLMResponse, ChatSource, ChatTurn, ChatResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer, joinedload
+
+import models
+from config import settings
+from schemas import ChatResponse, ChatSource, ChatTurn
 from utils.documents_utils import ACCEPTED_MIME
 from utils.image_utils import create_presigned_url
 
 collection_name = "document_chunks"
 
 openai_client = AsyncOpenAI(api_key=settings.openai_key)
+
 
 @contextmanager
 def generate_temp_file(file_bytes: bytes, extension: str):
@@ -37,22 +42,30 @@ def generate_temp_file(file_bytes: bytes, extension: str):
 @dataclass
 class DocumentLoader:
     extension: Literal[".pdf", ".doc", ".docx", ".xlsx"]
-    file_bytes : bytes
+    file_bytes: bytes
 
     def load_document(self) -> list[Document] | None:
         match self.extension:
             case ".pdf":
-                with generate_temp_file(file_bytes=self.file_bytes, extension=self.extension) as tmp_file:
+                with generate_temp_file(
+                    file_bytes=self.file_bytes, extension=self.extension
+                ) as tmp_file:
                     loader = PyPDFLoader(file_path=tmp_file)
                     return loader.load()
 
             case ".doc" | ".docx":
-                with generate_temp_file(file_bytes=self.file_bytes, extension=self.extension) as tmp_file:
-                    loader = UnstructuredWordDocumentLoader(file_path=tmp_file, mode="single")
+                with generate_temp_file(
+                    file_bytes=self.file_bytes, extension=self.extension
+                ) as tmp_file:
+                    loader = UnstructuredWordDocumentLoader(
+                        file_path=tmp_file, mode="single"
+                    )
                     return loader.load()
 
             case ".xlsx":
-                with generate_temp_file(file_bytes=self.file_bytes, extension=self.extension) as tmp_file:
+                with generate_temp_file(
+                    file_bytes=self.file_bytes, extension=self.extension
+                ) as tmp_file:
                     loader = UnstructuredExcelLoader(file_path=tmp_file, mode="single")
                     return loader.load()
 
@@ -62,29 +75,29 @@ class DocumentLoader:
 
 @dataclass
 class Processor:
-    chunk_size : int
-    overlap : int
+    chunk_size: int
+    overlap: int
 
     def __repr__(self) -> str:
         return f"Processor(chunk_size={self.chunk_size!r}, overlap={self.overlap})"
+
     def __str__(self) -> str:
         return "Base class for document type processing system. Use as blueprint for other classes."
 
 
 @dataclass
 class ReportProcessor(Processor):
+    chunk_size: int = 300
+    overlap: int = 20
 
-    chunk_size : int = 300
-    overlap : int = 20
-
-    def recursive_chunking(self,documents):
-        """  Text splitter used for returning chunks split with Recursive chunking algorithm. Input: Document Returns: the processed chunks."""
+    def recursive_chunking(self, documents):
+        """Text splitter used for returning chunks split with Recursive chunking algorithm. Input: Document Returns: the processed chunks."""
         if not documents:
             raise ValueError("No documents to process.")
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=self.chunk_size,
             chunk_overlap=self.overlap,
-            separators=["\n\n","\n"," ",""],
+            separators=["\n\n", "\n", " ", ""],
         )
         chunks = splitter.split_documents(documents)
 
@@ -93,21 +106,24 @@ class ReportProcessor(Processor):
         return chunks
 
     def __str__(self) -> str:
-        return f"Report processor used for chunking and processing report document type."
+        return "Report processor used for chunking and processing report document type."
 
 
 async def embedd(chunks):
     client = AsyncOpenAI(api_key=settings.openai_key)
-    response = await client.embeddings.create(model="text-embedding-3-small",input=[c.page_content for c in chunks])
+    response = await client.embeddings.create(
+        model="text-embedding-3-small", input=[c.page_content for c in chunks]
+    )
     return [v.embedding for v in response.data]
 
 
-async def save_embeddings(db,
-                          chunks,
-                          embeddings,
-                          document_id : int,
-                          client_id : int,
-                          ):
+async def save_embeddings(
+    db,
+    chunks,
+    embeddings,
+    document_id: int,
+    client_id: int,
+):
     rows = [
         models.DocumentChunk(
             document_id=document_id,
@@ -115,31 +131,29 @@ async def save_embeddings(db,
             text=chunk.page_content,
             embedding=vector,
             chunk_index=index,
-            page=chunk.metadata.get("page")
+            page=chunk.metadata.get("page"),
         )
-        for index,(chunk , vector) in enumerate(zip(chunks,embeddings))
+        for index, (chunk, vector) in enumerate(zip(chunks, embeddings))
     ]
 
     db.add_all(rows)
 
 
 async def retrieve_chunks(
-        db:AsyncSession,
-        query: str,
-        client_id: int,
-        top_k : int = 3
-)->list[models.DocumentChunk]:
+    db: AsyncSession, query: str, client_id: int, top_k: int = 3
+) -> list[models.DocumentChunk]:
     client = AsyncOpenAI(api_key=settings.openai_key)
-    response = await client.embeddings.create(model="text-embedding-3-small",
-                                              input=query)
+    response = await client.embeddings.create(
+        model="text-embedding-3-small", input=query
+    )
     query_embedding = response.data[0].embedding
 
     stmt = (
         select(models.DocumentChunk)
         .options(
-            #many-to-one : a single JOIN, no row multiplication
+            # many-to-one : a single JOIN, no row multiplication
             joinedload(models.DocumentChunk.document),
-            defer(models.DocumentChunk.embedding)
+            defer(models.DocumentChunk.embedding),
         )
         .where(models.DocumentChunk.client_id == client_id)
         .order_by(models.DocumentChunk.embedding.cosine_distance(query_embedding))
@@ -163,7 +177,9 @@ Your rules:
 - Keep answers concise and grounded in the text. Quote short phrases from the context when precision matters.
 - Answer in the same language as the user's question."""
 
-NO_CONTEXT_ANSWER = "I couldn't find anything relevant to this question in this client's documents."
+NO_CONTEXT_ANSWER = (
+    "I couldn't find anything relevant to this question in this client's documents."
+)
 
 
 def format_context(chunks: list[models.DocumentChunk]) -> str:
@@ -173,8 +189,10 @@ def format_context(chunks: list[models.DocumentChunk]) -> str:
         parts.append(f'[document "{chunk.document.name}", page {page}]\n{chunk.text}')
     return "\n\n".join(parts)
 
+
 EXTENSION_TO_MIME = {ext: mime for mime, ext in ACCEPTED_MIME.items()}
 FALLBACK_MIME = "application/octet-stream"
+
 
 def build_sources(chunks: list[models.DocumentChunk]) -> list[ChatSource]:
     # Several chunks can come from the same document: keep one source per
@@ -196,11 +214,11 @@ def build_sources(chunks: list[models.DocumentChunk]) -> list[ChatSource]:
 
 
 async def generate_answer(
-        db: AsyncSession,
-        query: str,
-        client_id: int,
-        history: list[ChatTurn] | None = None,
-        top_k: int = 5,
+    db: AsyncSession,
+    query: str,
+    client_id: int,
+    history: list[ChatTurn] | None = None,
+    top_k: int = 5,
 ) -> ChatResponse:
     chunks = await retrieve_chunks(db=db, query=query, client_id=client_id, top_k=top_k)
     if not chunks:
@@ -210,7 +228,10 @@ async def generate_answer(
         {"role": "system", "content": SYSTEM_PROMPT},
         # Earlier turns come from the browser: untrusted, already length-capped by ChatRequest.
         *({"role": t.role, "content": t.content} for t in (history or [])),
-        {"role": "user", "content": f"Context:\n{format_context(chunks)}\n\nQuery: {query}"},
+        {
+            "role": "user",
+            "content": f"Context:\n{format_context(chunks)}\n\nQuery: {query}",
+        },
     ]
 
     response = await openai_client.chat.completions.create(
@@ -223,22 +244,3 @@ async def generate_answer(
         answer=response.choices[0].message.content or NO_CONTEXT_ANSWER,
         sources=build_sources(chunks),
     )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

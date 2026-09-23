@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Literal, Annotated
-from pydantic import BaseModel, Field, EmailStr,  ConfigDict
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 import models
 
@@ -18,19 +18,17 @@ class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     username: str
-    image_file : str | None
-
+    image_file: str | None
 
 
 class UserPrivate(UserPublic):
     email: EmailStr
-    created_at : datetime
+    created_at: datetime
 
 
 class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=1, max_length=50)
     email: EmailStr | None = Field(default=None, max_length=120)
-
 
 
 class Token(BaseModel):
@@ -39,28 +37,23 @@ class Token(BaseModel):
 
 
 class ClientBase(BaseModel):
-    name : str = Field(min_length=3, max_length=150)
+    name: str = Field(min_length=3, max_length=150)
+
 
 class ClientCreate(ClientBase):
     email: EmailStr = Field(max_length=120)
 
-class ClientResponse(ClientBase):
-    id : int
-    email : EmailStr
-    created_by : UserPublic
 
+class ClientResponse(ClientBase):
+    id: int
+    email: EmailStr
+    created_by: UserPublic
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ClientUpdate(ClientBase):
-    email : EmailStr = Field(max_length=120)
-
-
-
-
-
-
+    email: EmailStr = Field(max_length=120)
 
 
 class DocumentBase(BaseModel):
@@ -70,24 +63,25 @@ class DocumentBase(BaseModel):
 class DocumentResponse(DocumentBase):
     id: int
     file: str
-    client_id : int
-    created_at : datetime
-    extension_type : str
+    client_id: int
+    created_at: datetime
+    extension_type: str
+
 
 class LLMResponse(DocumentResponse):
-    source : str
-    text : str
+    source: str
+    text: str
 
 
 class DocumentChunkOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id : int
-    document_id : int
-    document : DocumentResponse
-    client_id : int
-    chunk_index : int
-    page : int | None
-    text : str
+    id: int
+    document_id: int
+    document: DocumentResponse
+    client_id: int
+    chunk_index: int
+    page: int | None
+    text: str
 
 
 class ChatTurn(BaseModel):
@@ -111,43 +105,15 @@ class ChatResponse(BaseModel):
     sources: list[ChatSource] = Field(default_factory=list)
 
 
-
 class ForgotPasswordRequest(BaseModel):
-    email : EmailStr = Field(max_length=120)
+    email: EmailStr = Field(max_length=120)
+
 
 class ResetPasswordRequest(BaseModel):
-    token : str
-    new_password : str
+    token: str
+    new_password: str
+
 
 class ChangePasswordRequest(BaseModel):
-    current_password : str
-    new_password : str = Field(min_length=8)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    current_password: str
+    new_password: str = Field(min_length=8)

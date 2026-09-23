@@ -8,9 +8,10 @@ from pgvector.psycopg import register_vector_async
 
 engine = create_async_engine(
     url=settings.database_url,
-    #echo=True,
+    # echo=True,
 )
 from sqlalchemy import event
+
 
 @event.listens_for(engine.sync_engine, "connect")
 def connect(dbapi_connection, connection_record):
@@ -24,13 +25,9 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-
-
-
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
 
-
-DbSession = Annotated[AsyncSession,Depends(get_db)] 
+DbSession = Annotated[AsyncSession, Depends(get_db)]

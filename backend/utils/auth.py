@@ -1,4 +1,4 @@
-from  datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import jwt
 from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
@@ -21,8 +21,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/token")
 password_hash = PasswordHash.recommended()
 
 
-def hash_password(password : str) -> str:
+def hash_password(password: str) -> str:
     return password_hash.hash(password=password)
+
 
 def verify_password(plain_password: str, hashed_password) -> bool:
     return password_hash.verify(plain_password, hashed_password)
@@ -31,25 +32,21 @@ def verify_password(plain_password: str, hashed_password) -> bool:
 def generate_token() -> str:
     return secrets.token_urlsafe(64)
 
-def hash_reset_token(token)-> str:
+
+def hash_reset_token(token) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-
-def create_access_token(data: dict, expires_delta : timedelta| None = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Create JWT token"""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(tz=UTC) + expires_delta
     else:
-        expire = datetime.now(tz=UTC) + timedelta(
-            minutes=settings.access_token_minutes
-        )
-    to_encode.update({"exp":expire})
+        expire = datetime.now(tz=UTC) + timedelta(minutes=settings.access_token_minutes)
+    to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.secret_key.get_secret_value(),
-        algorithm=settings.algorithm
+        to_encode, settings.secret_key.get_secret_value(), algorithm=settings.algorithm
     )
     return encoded_jwt
 
@@ -61,13 +58,12 @@ def verify_access_token(token: str) -> str | None:
             jwt=token,
             key=settings.secret_key.get_secret_value(),
             algorithms=[settings.algorithm],
-            options={"require":["exp","sub"]}
+            options={"require": ["exp", "sub"]},
         )
     except jwt.InvalidTokenError:
         return None
     else:
         return payload.get("sub")
-
 
 
 async def get_current_user(
@@ -103,30 +99,6 @@ async def get_current_user(
         )
     return user
 
+
 # Dependency to inject into routes
 CurrentUser = Annotated[models.User, Depends(get_current_user)]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

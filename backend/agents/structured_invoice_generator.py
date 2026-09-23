@@ -1,9 +1,8 @@
 import time
 from llama_cloud import LlamaCloud
+from llama_cloud.types import ExtractConfigurationParam
 from pydantic import BaseModel, Field
 from datetime import datetime
-
-
 from config import settings
 
 
@@ -13,26 +12,30 @@ def _get_client() -> LlamaCloud:
 
 
 class InvoiceData(BaseModel):
-    vendor : str = Field(description="Vendor name")
-    invoice_date : datetime
-    due_date : datetime
-    invoice_number : str
-    total_due : str
-    items : list[str] = Field(description="Items of the current invoice, as a list")
-    summary : str = Field(max_length=300, description="A brief summary about the invoice")
+    vendor: str = Field(description="Vendor name")
+    invoice_date: datetime
+    due_date: datetime
+    invoice_number: str
+    total_due: str
+    items: list[str] = Field(description="Items of the current invoice, as a list")
+    summary: str = Field(
+        max_length=300, description="A brief summary about the invoice"
+    )
 
 
-def structured_invoice_summary(file_name : str,document : bytes):
+def structured_invoice_summary(file_name: str, document: bytes):
     client = _get_client()
-    file_obj = client.files.create(file=(file_name,document),purpose="extract")
+    file_obj = client.files.create(file=(file_name, document), purpose="extract")
+
+    config_params: ExtractConfigurationParam = ExtractConfigurationParam(
+        data_schema=InvoiceData.model_json_schema(),
+        extraction_target="per_doc",
+        tier="agentic",
+    )
 
     invoice = client.extract.create(
         file_input=file_obj.id,
-        configuration={
-            "data_schema": InvoiceData.model_json_schema(),
-            "extraction_target": "per_doc",
-            "tier": "agentic",
-        },
+        configuration=config_params,
     )
     while invoice.status not in ("COMPLETED", "FAILED", "CANCELLED"):
         print(f"EXTRACT STAGE: {invoice.status}...")
@@ -42,5 +45,3 @@ def structured_invoice_summary(file_name : str,document : bytes):
     if invoice.status != "COMPLETED":
         print(f"ERROR : {invoice}")
     return invoice.extract_result
-
-
