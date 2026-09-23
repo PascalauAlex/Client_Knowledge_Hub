@@ -39,6 +39,7 @@ COPY --from=builder /usr/share/misc/magic.mgc /usr/share/misc/magic.mgc
 COPY --from=builder /etc/magic /etc/magic.mime /etc/
 COPY --from=builder /venv /venv
 ENV PATH="/venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
 COPY . .
 

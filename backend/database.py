@@ -6,7 +6,6 @@ from config import settings
 from pgvector.psycopg import register_vector_async
 
 
-
 engine = create_async_engine(
     url=settings.database_url,
     #echo=True,

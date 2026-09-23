@@ -10,7 +10,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from config import settings
 import models
-from database import Base
+from models import Base
 import sys
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
