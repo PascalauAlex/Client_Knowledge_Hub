@@ -1,7 +1,10 @@
 from fastapi.params import Depends
+from psycopg import DatabaseError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
 from typing import Annotated
+from sqlalchemy import text
+
+
 from config import settings
 from pgvector.psycopg import register_vector_async
 
@@ -10,6 +13,7 @@ engine = create_async_engine(
     url=settings.database_url,
     # echo=True,
 )
+
 from sqlalchemy import event
 
 
@@ -28,6 +32,8 @@ AsyncSessionLocal = async_sessionmaker(
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
+
+
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]

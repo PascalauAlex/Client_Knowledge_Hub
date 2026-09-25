@@ -7,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 import models
 from agents.rag import DocumentLoader, ReportProcessor, embedd, save_embeddings
 from config import settings
-from schemas import DocumentResponse
+from schemas import DocumentResponse, DocumentSummaryResponse
 from utils.auth import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.documents_utils import process_document, ACCEPTED_MIME
@@ -20,7 +20,7 @@ from agents.structured_invoice_generator import structured_invoice_summary
 router = APIRouter()
 
 
-@router.post(path="/upload", status_code=status.HTTP_201_CREATED)
+@router.post(path="/upload", status_code=status.HTTP_201_CREATED,response_model=DocumentResponse)
 async def upload_document(
     name: str,
     client_id: int,
@@ -185,10 +185,10 @@ async def delete_document(
     return {"success": "The document was deleted successfully"}
 
 
-@router.get("/document_summary")
+@router.get("/document_summary",response_model=DocumentSummaryResponse)
 async def get_document_summary(
     document_id: int, db: DbSession, current_user: CurrentUser, client_id: int
-):
+)->dict:
     result = await db.execute(
         select(models.Client).where(models.Client.id == client_id)
     )

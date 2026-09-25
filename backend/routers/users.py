@@ -121,9 +121,8 @@ async def login_for_access_token(
 
 @router.get(path="/me", response_model=UserPrivate)
 async def get_current_user(current_user: CurrentUser):
-    image_name = current_user.image_file
-    image_path = create_presigned_url(object_name=f"files/{image_name}")
-    current_user.image_file = image_path
+    if current_user.image_file:
+        current_user.image_file = current_user.image_path
     return current_user
 
 
@@ -262,7 +261,7 @@ async def forgot_password(
 @router.post(
     path="/upload_profile_picture",
     status_code=status.HTTP_200_OK,
-    response_model=UserPublic,
+    response_model=UserPrivate,
 )
 async def upload_profile_picture(
     file: UploadFile,
@@ -312,6 +311,8 @@ async def upload_profile_picture(
 
     if old_file:
         await delete_document_s3(old_file)
+    if current_user.image_file:
+        current_user.image_file = current_user.image_path
     return current_user
 
 

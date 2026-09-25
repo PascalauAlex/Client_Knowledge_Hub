@@ -1,5 +1,4 @@
 import os.path
-
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,7 +30,9 @@ class Settings(BaseSettings):
     s3_secret_access_key: SecretStr | None = None
     s3_endpoint_url: str | None = None
     llama_api_key: str | None = None
-
+    postgres_user : str
+    postgres_password : str
+    postgres_db : str
     openai_key: str | None = ""
 
 

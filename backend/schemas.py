@@ -61,12 +61,15 @@ class DocumentBase(BaseModel):
 
 
 class DocumentResponse(DocumentBase):
-    id: int
     file: str
     client_id: int
-    created_at: datetime
+    type: str
     extension_type: str
+    created_at: datetime
 
+
+class DocumentSummaryResponse(BaseModel):
+    summary : dict = Field(default={"summary":""})
 
 class LLMResponse(DocumentResponse):
     source: str

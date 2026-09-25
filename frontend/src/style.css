@@ -9,28 +9,27 @@
   --palette-celadon: #a1e5ab;
   --palette-light-green: #adf6b1;
 
-  /* neutre adăugate: paleta nu are un ton foarte închis sau foarte deschis */
+
   --palette-ink: #1f2a30;
   --palette-paper: #f5f8f7;
   --palette-white: #ffffff;
 
-  /* roșu temperat, desaturat ca să se împace cu verdele paletei */
+
   --palette-clay: #a8443b;
   --palette-clay-dark: #8f3a32;
 
-  /* variante închise pentru hover */
+
   --palette-muted-teal-dark: #7aa89a;
   --palette-celadon-dark: #8bd396;
 }
 
-/* 2. Roluri semantice: doar acestea generează clase Tailwind */
 @theme inline {
-  /* fundalul aplicației și textul de bază */
+
   --color-background: var(--palette-paper);
   --color-foreground: var(--palette-ink);
 
 
-  /* carduri, panouri, modale */
+
   --color-surface: var(--palette-white);
   --color-border: var(--palette-cool-steel);
 
@@ -53,7 +52,7 @@
   --color-primary-hover: var(--palette-muted-teal-dark);
   --color-accent-hover: var(--palette-celadon-dark);
 
-  /* acțiuni distructive: delete, revoke, cancel */
+
   --color-destructive: var(--palette-clay);
   --color-destructive-foreground: var(--palette-white);
   --color-destructive-hover: var(--palette-clay-dark);

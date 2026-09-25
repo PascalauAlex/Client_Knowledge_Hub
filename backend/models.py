@@ -6,6 +6,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 from config import settings
 from pgvector.sqlalchemy import Vector
 
+from utils.image_utils import create_presigned_url
+
 
 class Base(DeclarativeBase):
     pass
@@ -34,8 +36,8 @@ class User(Base):
     @property
     def image_path(self) -> str:
         if self.image_file:
-            return f"https://{settings.s3_bucket_name}.s3.{settings.s3_region}.amazonaws.com/profile_pics/{self.image_file}"
-        return "/static/profile_pics/default.jpg"
+            return create_presigned_url(object_name=f"files/{self.image_file}")
+        return ""
 
     def __repr__(self) -> str:
         return (

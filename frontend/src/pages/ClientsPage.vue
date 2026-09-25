@@ -42,7 +42,7 @@ onMounted(async () => {
   <div>
     <ActionBar>
       <template #default>
-        <DefaultButton> Add Client </DefaultButton>
+        <DefaultButton @click="router.push({name: 'AddClient'})"> Add Client </DefaultButton>
       </template>
     </ActionBar>
     <div class="mt-10">
