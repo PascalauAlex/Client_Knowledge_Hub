@@ -1,16 +1,10 @@
-from http.client import responses
-
 from httpx import AsyncClient
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-from sympy.polys.subresultants_qq_zz import res
-
 import models
 from tests.conftest import auth_header, create_test_user, login_user, create_test_client
-from unittest.mock import AsyncMock, patch
 from sqlalchemy import select
-import logging
 
 
 @pytest.mark.anyio

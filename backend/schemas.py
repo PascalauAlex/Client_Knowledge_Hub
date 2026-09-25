@@ -61,6 +61,7 @@ class DocumentBase(BaseModel):
 
 
 class DocumentResponse(DocumentBase):
+    id : int
     file: str
     client_id: int
     type: str

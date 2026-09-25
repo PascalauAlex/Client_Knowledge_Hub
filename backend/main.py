@@ -1,9 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Callable
-from fastapi import FastAPI, UploadFile, HTTPException, status, Request, Response
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.exc import DatabaseError
-from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 from database import DbSession
 from database import engine

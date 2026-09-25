@@ -41,7 +41,6 @@ from utils.image_utils import (
     process_profile_image,
     delete_document_s3,
     upload_file_s3,
-    create_presigned_url,
 )
 
 router = APIRouter()

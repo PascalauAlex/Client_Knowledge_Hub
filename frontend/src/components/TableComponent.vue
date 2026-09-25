@@ -24,7 +24,13 @@ const emit = defineEmits<{ rowClick: [row: T] }>()
   <table class="data-table">
     <thead>
       <tr>
-        <th class="font-bold text-2xl" v-for="col in columns" :key="col.key">{{ col.label }}</th>
+        <th
+          class="bg-background text-xs font-semibold tracking-wide text-foreground/60 uppercase"
+          v-for="col in columns"
+          :key="col.key"
+        >
+          {{ col.label }}
+        </th>
       </tr>
     </thead>
 
@@ -38,7 +44,7 @@ const emit = defineEmits<{ rowClick: [row: T] }>()
       <tr
         v-for="row in rows"
         :key="String(row[rowKey])"
-        class="hover:bg-accent transition cursor-pointer font-semibold"
+        class="group cursor-pointer transition hover:bg-accent/25"
         @click="emit('rowClick', row)"
       >
         <td v-for="col in columns" :key="col.key">
@@ -59,20 +65,18 @@ const emit = defineEmits<{ rowClick: [row: T] }>()
 
 .data-table th,
 .data-table td {
-  padding: 0.6rem 0.75rem;
+  padding: 0.9rem 1.25rem;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid color-mix(in srgb, var(--palette-cool-steel) 25%, transparent);
 }
 
-.data-table th {
-  font-weight: 600;
-  color: #374151;
-  background: #f9fafb;
+.data-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .data-table__empty {
   text-align: center;
-  color: #6b7280;
-  padding: 1.5rem;
+  color: color-mix(in srgb, var(--palette-ink) 60%, transparent);
+  padding: 3rem 1.5rem;
 }
 </style>

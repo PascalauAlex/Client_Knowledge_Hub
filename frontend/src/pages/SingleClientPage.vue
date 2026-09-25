@@ -185,56 +185,90 @@ const formatDate = (value: string) =>
 </script>
 
 <template>
-  <div class="p-6">
+  <div class="text-foreground mx-auto max-w-6xl space-y-8">
     <div v-if="client" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <!-- Card client -->
-      <section class="h-fit rounded-xl bg-surface p-6 shadow-sm lg:col-span-1">
-        <h2 class="text-lg font-semibold">{{ client.name }}</h2>
-        <p class="mt-1 text-sm text-foreground/60">ID #{{ client.id }}</p>
+      <section
+        class="h-fit overflow-hidden rounded-2xl border border-accent bg-surface shadow-sm lg:col-span-1"
+      >
+        <div
+          class="relative h-20 overflow-hidden bg-linear-to-br from-accent/60 via-accent/30 to-primary/40"
+        >
+          <div
+            class="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-accent/60 blur-3xl"
+          ></div>
+        </div>
 
-        <dl class="mt-6 space-y-4">
-          <div>
-            <dt class="text-xs font-medium uppercase tracking-wide text-foreground/60">Email</dt>
-            <dd class="mt-1 text-sm">{{ client.email }}</dd>
+        <div class="px-6 pb-6">
+          <div
+            class="-mt-8 flex h-16 w-16 items-center justify-center rounded-full bg-accent text-2xl font-bold text-accent-foreground shadow-md ring-4 ring-surface"
+          >
+            {{ client.name.charAt(0).toUpperCase() }}
           </div>
-          <div>
-            <dt class="text-xs font-medium uppercase tracking-wide text-foreground/60">
-              Created by
-            </dt>
-            <dd class="mt-1 text-sm">{{ client.created_by?.username ?? '—' }}</dd>
-          </div>
-        </dl>
+          <h2 class="mt-3 text-xl font-bold tracking-tight">{{ client.name }}</h2>
+          <span
+            class="mt-1 inline-flex rounded-md bg-background px-2 py-0.5 font-mono text-xs text-foreground/60"
+          >
+            #{{ client.id }}
+          </span>
 
-        <div class="mt-8">
-          <h3 class="text-xs font-medium uppercase tracking-wide text-foreground/60">Actions</h3>
-          <div class="mt-3 flex gap-2">
-            <DefaultButton class="flex-1" @click="editModal = true">
-              <SquarePen class="h-4 w-4" /> Edit
-            </DefaultButton>
-            <DefaultButton style-type="danger" class="flex-1" @click="deleteModal = true">
-              <Trash class="h-4 w-4" /> Delete
-            </DefaultButton>
+          <dl class="mt-6 space-y-4">
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wide text-foreground/60">Email</dt>
+              <dd class="mt-1 text-sm">{{ client.email }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wide text-foreground/60">
+                Created by
+              </dt>
+              <dd class="mt-1">
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-semibold"
+                >
+                  <span class="h-1.5 w-1.5 rounded-full bg-primary-hover"></span>
+                  {{ client.created_by?.username ?? '—' }}
+                </span>
+              </dd>
+            </div>
+          </dl>
+
+          <div class="mt-8 border-t border-border/30 pt-6">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-foreground/60">Actions</h3>
+            <div class="mt-3 flex gap-2">
+              <DefaultButton class="flex-1" @click="editModal = true">
+                <SquarePen class="h-4 w-4" /> Edit
+              </DefaultButton>
+              <DefaultButton style-type="danger" class="flex-1" @click="deleteModal = true">
+                <Trash class="h-4 w-4" /> Delete
+              </DefaultButton>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- Documents card -->
-      <section class="rounded-xl bg-surface p-6 shadow-sm lg:col-span-2">
-        <header class="mb-4 flex items-center justify-between gap-4">
-          <div class="flex items-center gap-2">
-            <h2 class="text-lg font-semibold">Documents</h2>
-            <span
-              class="rounded-full bg-background px-2 py-0.5 text-xs font-medium text-foreground/60"
-            >
-              {{ documents.length }}
-            </span>
+      <section class="rounded-2xl border border-border/40 bg-surface p-6 shadow-sm lg:col-span-2">
+        <header class="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-semibold">Documents</h2>
+              <span
+                class="rounded-full bg-accent/40 px-2 py-0.5 text-xs font-semibold text-accent-foreground"
+              >
+                {{ documents.length }}
+              </span>
+            </div>
+            <div class="mt-2 h-1 w-10 rounded-full bg-accent"></div>
           </div>
 
-          <div
-            class="font-semibold border border-white hover:border hover:border-border p-1 rounded-lg"
-          >
-            <component class="inline mr-1" :is="Upload"></component>
-            <label for="file-input" class="cursor-pointer">Upload</label>
+          <div>
+            <label
+              for="file-input"
+              class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-accent bg-accent px-3.5 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent-hover"
+            >
+              <component class="h-4 w-4" :is="Upload"></component>
+              Upload
+            </label>
             <input
               @change="handleUpload"
               id="file-input"
@@ -244,13 +278,17 @@ const formatDate = (value: string) =>
             />
           </div>
         </header>
-        <ul v-if="documents.length" class="space-y-1 overflow-y-auto max-h-64">
+        <ul v-if="documents.length" class="max-h-64 space-y-2 overflow-y-auto pr-1">
           <li
             v-for="doc in documents"
             :key="doc.id"
-            class="flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-background"
+            class="group flex items-center gap-3 rounded-xl border border-border/30 px-3 py-3 transition hover:border-accent hover:bg-accent/20"
           >
-            <FileText class="h-5 w-5 shrink-0 text-foreground/50" />
+            <span
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/50 text-accent-foreground transition group-hover:bg-accent"
+            >
+              <FileText class="h-5 w-5" />
+            </span>
 
             <div class="min-w-0 flex-1">
               <a
@@ -263,17 +301,26 @@ const formatDate = (value: string) =>
               </a>
               <p class="mt-0.5 text-xs text-foreground/60">{{ formatDate(doc.created_at) }}</p>
             </div>
-            <div class="mr-5">
-              <button
-                @click="activateDocumentDeleteModal(doc)"
-                class="text-red-500 hover:bg-red-50 transition cursor-pointer border-2 border-red-500 p-2 rounded-lg"
-              >
-                <Trash />
-              </button>
-            </div>
+            <button
+              @click="activateDocumentDeleteModal(doc)"
+              class="cursor-pointer rounded-lg p-2 text-foreground/40 transition hover:bg-destructive/10 hover:text-destructive"
+              title="Delete document"
+            >
+              <Trash class="h-4 w-4" />
+            </button>
           </li>
         </ul>
-        <p v-else class="py-8 text-center text-sm text-foreground/60">No documents...</p>
+        <div
+          v-else
+          class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/50 py-10 text-center"
+        >
+          <span
+            class="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/40 text-accent-foreground"
+          >
+            <FileText class="h-6 w-6" />
+          </span>
+          <p class="text-sm text-foreground/60">No documents yet.</p>
+        </div>
       </section>
     </div>
 
@@ -304,11 +351,11 @@ const formatDate = (value: string) =>
 
       <template #footer>
         <button
-          class="border border-border hover:border-white hover:bg-border p-2 rounded-lg hover:text-white"
+          class="cursor-pointer rounded-lg border border-border/50 px-3.5 py-2 text-sm font-semibold transition hover:bg-background disabled:opacity-50"
           :disabled="deleting"
           @click="deleteModal = false"
         >
-          CANCEL
+          Cancel
         </button>
 
         <DefaultButton style-type="danger" :disabled="!canDelete" @click="handleClientDelete">
@@ -325,45 +372,43 @@ const formatDate = (value: string) =>
       description="Deleted documents cannot be restored after this procedure."
       :entity="documentToDelete"
     >
-      <h1 class="font-semibold">
+      <p class="text-sm text-foreground/70">
         Are you sure that you want to delete
-        <span class="font-bold text-2xl"
-          >{{ documentToDelete.name }}{{ documentToDelete.extension_type }}?</span
-        >
-      </h1>
-      <div class="mt-2">
-        <p>
-          To confirm deletion please write
-          <span class="italic"
-            >'{{ documentToDelete.name }}{{ documentToDelete.extension_type }}'</span
-          >.
-        </p>
-        <input
-          v-model="documentDeleteConfirmation"
-          class="mt-5 border border-border rounded-lg p-2"
-          type="text"
-          autocomplete="off"
-          :placeholder="'Write: ' + documentToDelete.name + documentToDelete.extension_type"
-          @keyup.enter="handleDocumentDelete"
-        />
+        <strong class="text-foreground"
+          >{{ documentToDelete.name }}{{ documentToDelete.extension_type }}</strong
+        >? To confirm deletion please write
+        <span class="rounded bg-background px-1 font-mono text-xs"
+          >{{ documentToDelete.name }}{{ documentToDelete.extension_type }}</span
+        >.
+      </p>
+      <input
+        v-model="documentDeleteConfirmation"
+        class="mt-3 w-full rounded-lg border bg-surface px-3 py-2 text-sm transition placeholder:text-foreground/40 focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/40"
+        type="text"
+        autocomplete="off"
+        :placeholder="'Write: ' + documentToDelete.name + documentToDelete.extension_type"
+        @keyup.enter="handleDocumentDelete"
+      />
+
+      <template #footer>
         <button
-          class="ml-2 border border-border hover:border-white hover:bg-border p-2 rounded-lg hover:text-white"
+          class="cursor-pointer rounded-lg border border-border/50 px-3.5 py-2 text-sm font-semibold transition hover:bg-background disabled:opacity-50"
           :disabled="deletingDocument"
           @click="documentModalActive = false"
         >
-          CANCEL
+          Cancel
         </button>
         <DefaultButton
-          class="ml-2"
           style-type="danger"
           :disabled="!canDeleteDocument"
           @click="handleDocumentDelete"
         >
           {{ deletingDocument ? 'Deleting...' : 'Delete' }}
         </DefaultButton>
-      </div>
+      </template>
     </BaseModal>
-    <div class="mt-10">
+
+    <div class="overflow-hidden rounded-2xl border border-border/40 shadow-sm">
       <ChatComponent :client-id="client_id"></ChatComponent>
     </div>
   </div>
