@@ -7,6 +7,7 @@ import type { User } from '@/types/user.ts'
 import { formatDate } from '@/utils/formatDate'
 import config from '@/config.ts'
 import DefaultButton from '@/components/DefaultButton.vue'
+import { isValidPassword } from '@/utils/validPassword.ts'
 
 const changePassword = ref<boolean>(false)
 
@@ -75,6 +76,11 @@ const current_password = ref<string>('')
 const new_password = ref<string>('')
 const redirectAnnounce = ref<string>()
 const handleChangePassword = async () => {
+  const valid_password = isValidPassword(new_password.value)
+  if (!valid_password.valid){
+    redirectAnnounce.value = valid_password.errorMessage
+    return
+  }
   const formData = new FormData()
   formData.append('current_password', current_password.value)
   formData.append('new_password', new_password.value)
@@ -102,8 +108,8 @@ const handleChangePassword = async () => {
         redirectAnnounce.value = 'Invalid password.'
         break
       default:
-        redirectAnnounce.value = "Error while changing password, please try again."
-        break;
+        redirectAnnounce.value = 'Error while changing password, please try again.'
+        break
     }
   } catch (err) {
     console.error(err)

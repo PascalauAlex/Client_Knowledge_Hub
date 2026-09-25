@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import DefaultButton from '@/components/DefaultButton.vue'
 import api from '@/services/api.ts'
 import { useRouter } from 'vue-router'
+import { isValidPassword } from '@/utils/validPassword.ts'
 
 const username = ref<string>('')
 const email = ref<string>('')
@@ -38,6 +39,11 @@ const handleSubmit = async () => {
     if (password.value.length <= 8) {
       error.value.push('Password should contain 8 or more characters.')
     }
+  }
+
+  const validPassword = isValidPassword(password.value)
+  if(!validPassword.valid){
+    return
   }
 
   if (error.value.length > 0) {
