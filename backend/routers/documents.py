@@ -263,7 +263,7 @@ async def get_document(
 
     if document is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUNDM, detail="The document was not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="The document was not found"
         )
     object_name = document.file
     if not object_name:
