@@ -8,7 +8,7 @@ While traditional CRMs handle structured data, this service acts as the **narrat
 
 ## 🚀 Key Features
 
-- **Decoupled Architecture:** Integrates with any existing CRM using `external_crm_id` mapping.
+- **Decoupled Architecture:** Runs as a standalone service behind a REST API (auto-documented via OpenAPI), so any frontend or internal tool can consume it without sharing code or database access.
 - **Narrative CRUD:** Complete management of Clients and nested Documents categorized by type.
 - **JWT Authentication:** For human users (e.g., sales reps) accessing the system via a frontend client.
 
@@ -53,7 +53,7 @@ The RAG flow is split into a clear ingestion path and a retrieval path.
 | Vector storage in PostgreSQL via pgvector | ✅ Implemented |
 | Atomic upload with rollback + S3 cleanup | ✅ Implemented |
 | Semantic retrieval, client-isolated (`cosine_distance`) | ✅ Implemented |
-| Grounded LLM synthesis with citations | 🟡 In progress |
+| Grounded LLM synthesis with citations | ✅ Implemented |
 | Additional document types (`contract`) & structured invoice handling | 🔜 Planned |
 | Approximate vector index (HNSW) for scale | 🔜 Planned |
 
