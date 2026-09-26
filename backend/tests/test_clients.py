@@ -109,3 +109,5 @@ async def test_get_user_without_authorization(client: AsyncClient):
     print(response.text)
     assert response.status_code == 400
     assert "No client with the current id" in response.text
+
+

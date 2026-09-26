@@ -10,6 +10,8 @@ from tests.conftest import auth_header, create_test_user, login_user
 from unittest.mock import AsyncMock, patch
 from utils.auth import hash_reset_token
 from datetime import datetime, timedelta
+import io
+from PIL import Image
 
 
 @pytest.mark.anyio
@@ -153,8 +155,24 @@ async def test_delete_user(client: AsyncClient, db_session: AsyncSession):
 
 
 @pytest.mark.anyio
-async def test_upload_profile_picture(client: AsyncClient):
-    pass
+async def test_upload_profile_picture(authenticated_client: AsyncClient):
+    # Logged user ID
+    me = await authenticated_client.get("/api/users/me")
+    user_id = me.json()["id"]
+
+    # IMAGE created in memory
+    buf = io.BytesIO()
+    Image.new("RGB", (10, 10), "red").save(buf, format="PNG")
+
+    response = await authenticated_client.post(
+        "/api/users/upload_profile_picture",
+        params={"user_id": user_id},
+        files={"file": ("avatar.png", buf.getvalue(), "image/png")},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["image_file"]
+
 
 
 @pytest.mark.anyio
