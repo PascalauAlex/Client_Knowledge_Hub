@@ -134,14 +134,14 @@ async def delete_client(client_id: int, db: DbSession, current_user: CurrentUser
 
     for doc in documents:
         try:
-            await delete_document_s3(filename=doc.name)
+            await delete_document_s3(filename=doc.file)
             await db.execute(
                 sql_delete(models.Document).where(models.Document.id == doc.id)
             )
         except ClientError as err:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Error while deleting document :{doc.name} from S3. Error:{err}",
+                detail=f"Error while deleting document :{doc.file} from S3. Error:{err}",
             )
 
     return {"message": "Client and related documents were removed"}
