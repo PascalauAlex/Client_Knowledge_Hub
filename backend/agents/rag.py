@@ -130,6 +130,9 @@ async def embedd(chunks):
     )
     return [v.embedding for v in response.data]
 
+def to_human_page(page:int | None) -> int | None:
+    """PyPDFLoader numbers pages from 0; store them 1-based so citations match the PDF viewer."""
+    return page + 1 if page is not None else None
 
 async def save_embeddings(
     db,
@@ -145,7 +148,7 @@ async def save_embeddings(
             text=chunk.page_content,
             embedding=vector,
             chunk_index=index,
-            page=chunk.metadata.get("page"),
+            page=to_human_page(chunk.metadata.get("page")),
         )
         for index, (chunk, vector) in enumerate(zip(chunks, embeddings))
     ]
@@ -222,11 +225,11 @@ def build_sources(chunks: list[models.DocumentChunk]) -> list[ChatSource]:
             title=doc.name,
             # Create presigned url, for accessing the document from AWS S3 Bucket.
             url=create_presigned_url(
-                object_name=doc.file,
+                object_name=f"files/{doc.file}",
                 response_type=EXTENSION_TO_MIME.get(doc.extension_type, FALLBACK_MIME),
             ),
         )
-    # Return a list of sources used to justify LLM Response based on the provided emeddings
+    # Return a list of sources used to justify LLM Response based on the provided embeddings
     return list(sources.values())
 
 
