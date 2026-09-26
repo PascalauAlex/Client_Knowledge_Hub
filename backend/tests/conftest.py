@@ -125,11 +125,15 @@ async def authenticated_client(client):
 
 
 ## Auth Helpers
+TEST_USER_USERNAME = "testuser"
+TEST_USER_EMAIL = "test@example.com"
+TEST_USER_PASSWORD = "!Testpassword123"
+
 async def create_test_user(
     client: AsyncClient,
-    username: str = "testuser",
-    email: str = "test@example.com",
-    password: str = "testpassword123",
+    username: str = TEST_USER_USERNAME,
+    email: str = TEST_USER_EMAIL,
+    password: str = TEST_USER_PASSWORD,
 ) -> dict:
     response = await client.post(
         "/api/users",
@@ -145,8 +149,8 @@ async def create_test_user(
 
 async def login_user(
     client: AsyncClient,
-    email: str = "test@example.com",
-    password: str = "testpassword123",
+    email: str = TEST_USER_EMAIL,
+    password: str = TEST_USER_PASSWORD,
 ) -> str:
     response = await client.post(
         "/api/users/token",

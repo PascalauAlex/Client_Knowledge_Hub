@@ -1,7 +1,6 @@
 from sqlalchemy.orm import joinedload
-from starlette.concurrency import run_in_threadpool
 import models
-from agents.rag import retrieve_chunks, generate_answer
+from agents.rag import  generate_answer
 from database import DbSession
 from fastapi import APIRouter, HTTPException
 from fastapi import status
@@ -12,7 +11,6 @@ from schemas import (
     ClientResponse,
     ClientUpdate,
     DocumentResponse,
-    DocumentChunkOut,
 )
 from utils.auth import CurrentUser
 from utils.documents_utils import ACCEPTED_MIME
@@ -26,9 +24,8 @@ router = APIRouter(prefix="", tags=["clients"])
     path="", response_model=list[ClientResponse], status_code=status.HTTP_200_OK
 )
 async def get_clients(current_user: CurrentUser, db: DbSession):
-    result = await db.execute(select(models.Client))
+    result = await db.execute(select(models.Client).where(models.Client.created_by_id == current_user.id))
     clients = result.scalars().all()
-
     return clients
 
 
@@ -44,7 +41,7 @@ async def create_client(client: ClientCreate, current_user: CurrentUser, db: DbS
 
     if existing_client:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="The client name exists"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="The client name already exists"
         )
 
     new_client = Client(

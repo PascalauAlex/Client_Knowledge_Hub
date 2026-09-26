@@ -72,6 +72,9 @@ class Client(Base):
         pass
 
 
+
+
+
 class Document(Base):
     __tablename__ = "documents"
 

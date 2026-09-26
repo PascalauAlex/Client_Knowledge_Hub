@@ -1,6 +1,7 @@
 import uuid
 from httpx import AsyncClient
 import pytest
+from openai.types.beta import assistant_stream_event
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import models
@@ -27,7 +28,7 @@ async def test_creating_user_success(client: AsyncClient, db_session: AsyncSessi
         json={
             "username": "testuser",
             "email": "user@example.com",
-            "password": "securepassword123",
+            "password": "!Securepassword123",
         },
     )
 
@@ -56,7 +57,7 @@ async def test_get_user_me(client: AsyncClient):
     user = await create_test_user(client)
     assert user
 
-    token = await login_user(client, "test@example.com", "testpassword123")
+    token = await login_user(client, "test@example.com", "!Testpassword123")
 
     assert token
     authorization = auth_header(token)
@@ -81,11 +82,11 @@ async def test_change_password(client: AsyncClient):
 
     assert user
 
-    token = await login_user(client, "test@example.com", "testpassword123")
+    token = await login_user(client, "test@example.com", "!Testpassword123")
 
     response = await client.post(
         "/api/users/me/password",
-        json={"current_password": "testpassword123", "new_password": "123testpassword"},
+        json={"current_password": "!Testpassword123", "new_password": "!123Testpassword"},
         headers=auth_header(token),
     )
 
@@ -117,7 +118,7 @@ async def test_reset_password(client: AsyncClient, db_session: AsyncSession):
 
     response = await client.post(
         "/api/users/reset-password",
-        json={"token": raw_token, "new_password": "123testpassword"},
+        json={"token": raw_token, "new_password": "!123Testpassword"},
     )
 
     assert response.status_code == 200
@@ -154,3 +155,36 @@ async def test_delete_user(client: AsyncClient, db_session: AsyncSession):
 @pytest.mark.anyio
 async def test_upload_profile_picture(client: AsyncClient):
     pass
+
+
+@pytest.mark.anyio
+async def test_password_validation_fail_on_create(client: AsyncClient):
+    """ Test user create with an invalid password """
+    response = await client.post("/api/users",data={"username":"test_user","email":"test@test.com","password":"testpassword"})
+    assert response.status_code == 422
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

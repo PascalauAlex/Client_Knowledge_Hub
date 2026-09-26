@@ -27,6 +27,14 @@ collection_name = "document_chunks"
 openai_client = AsyncOpenAI(api_key=settings.openai_key)
 
 
+# TODO : Integrate own Document Loader with pypdf
+
+
+
+
+
+
+
 @contextmanager
 def generate_temp_file(file_bytes: bytes, extension: str):
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=extension)
@@ -110,6 +118,12 @@ class ReportProcessor(Processor):
 
 
 async def embedd(chunks):
+    """
+
+     Embed each document using OPENAI text-embedding-3-small.
+     Return provided embeddings for database save.
+
+    """
     client = AsyncOpenAI(api_key=settings.openai_key)
     response = await client.embeddings.create(
         model="text-embedding-3-small", input=[c.page_content for c in chunks]
@@ -191,6 +205,7 @@ def format_context(chunks: list[models.DocumentChunk]) -> str:
 
 
 EXTENSION_TO_MIME = {ext: mime for mime, ext in ACCEPTED_MIME.items()}
+# If the document type is not found in ACCEPTED_MIME
 FALLBACK_MIME = "application/octet-stream"
 
 
@@ -205,11 +220,13 @@ def build_sources(chunks: list[models.DocumentChunk]) -> list[ChatSource]:
         sources[doc.id] = ChatSource(
             id=doc.id,
             title=doc.name,
+            # Create presigned url, for accessing the document from AWS S3 Bucket.
             url=create_presigned_url(
                 object_name=doc.file,
                 response_type=EXTENSION_TO_MIME.get(doc.extension_type, FALLBACK_MIME),
             ),
         )
+    # Return a list of sources used to justify LLM Response based on the provided emeddings
     return list(sources.values())
 
 
@@ -220,6 +237,14 @@ async def generate_answer(
     history: list[ChatTurn] | None = None,
     top_k: int = 5,
 ) -> ChatResponse:
+    """
+
+    Function used to generate an answer back into the endpoint.
+    This function takes a query, a history of conversation and provide the right answer back the endpoint.
+
+    """
+    # Retrieve the chunks specifying the user query and client_id, ensuring data protection
+
     chunks = await retrieve_chunks(db=db, query=query, client_id=client_id, top_k=top_k)
     if not chunks:
         return ChatResponse(answer=NO_CONTEXT_ANSWER)

@@ -4,6 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+MAX_IMAGE_SIZE = 1024 * 1024 * 5 # 5 MB
+MAX_FILE_SIZE = 1024 * 1024 * 100 # 100 MB
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -14,8 +17,8 @@ class Settings(BaseSettings):
     database_url: str
     access_token_expire_minutes: int = 200
     reset_token_expire_minutes: int = 400
-    max_image_size: int = 1024 * 1024 * 5  # 5 MB
-    max_file_size: int = 1024 * 1024 * 100  # 100 MB
+    max_image_size: int = MAX_IMAGE_SIZE
+    max_file_size: int = MAX_FILE_SIZE
     # Email send
     mail_from: str = ""
     mail_host: str = ""
