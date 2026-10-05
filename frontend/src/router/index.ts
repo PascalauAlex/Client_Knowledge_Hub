@@ -7,7 +7,7 @@ import SignupPage from '@/pages/AuthPages/SignupPage.vue'
 import SingleClientPage from '@/pages/SingleClientPage.vue'
 import ForgotPasswordPage from '@/pages/AuthPages/ForgotPasswordPage.vue'
 import ResetPasswordPage from '@/pages/AuthPages/ResetPasswordPage.vue'
-import AddClientPage from '@/pages/AddClientPage.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,12 +18,6 @@ const router = createRouter({
       component: ClientsPage,
       name: 'Clients',
       meta: { title: 'Client', requiresAuth: true },
-    },
-    {
-      path: '/add-client',
-      component: AddClientPage,
-      name : 'AddClient',
-      meta : {title : 'AddClient', requiresAuth : true}
     },
     {
       path: '/account',
