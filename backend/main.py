@@ -3,18 +3,39 @@ from typing import Callable
 from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.templating import Jinja2Templates
+
+from config import settings
 from database import DbSession
 from database import engine
+from rag.security import SecurityPipeline
 from routers import users, clients, documents
 from sqlalchemy import text
+from rag.monitoring import JSONFormatter, MetricsCollector, get_logger
 
 templates = Jinja2Templates(directory="templates")
 
 origins = ["http://localhost:5173"]
 
 
+
+# === Global instances (initialized at lifespan) ===
+security : SecurityPipeline = None
+metrics : MetricsCollector = None
+
+
+logger = get_logger()
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    global security, metrics
+
+    print("="*150)
+    logger.info(msg="Starting Client Knowledge Hub...",extra={"extra_data":{
+        "environment":settings.app_env,
+        "primary_model":settings.primary_model,
+        "tracing_enabled":settings.langsmith_tracing
+    }})
     yield
     # Shutdown
     await engine.dispose()

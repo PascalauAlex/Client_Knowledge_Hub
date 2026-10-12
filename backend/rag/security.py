@@ -206,6 +206,14 @@ class SecurityPipeline:
 
         return True, cleaned, notes
 
+    @traceable(name="security_check_output")
+    def check_output(self, text: str)-> tuple[str,list[str]]:
+        """
+        Validate output before returning to client.
+        Returns (cleaned_output, warnings_list)
+        """
+        return self.output_validator.validate(text)
+
 
 
 
