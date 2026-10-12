@@ -31,10 +31,6 @@ openai_client = AsyncOpenAI(api_key=settings.openai_key)
 
 
 
-
-
-
-
 @contextmanager
 def generate_temp_file(file_bytes: bytes, extension: str):
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=extension)

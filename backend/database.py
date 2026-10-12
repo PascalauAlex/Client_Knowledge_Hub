@@ -1,5 +1,5 @@
 from fastapi.params import Depends
-from psycopg import DatabaseError
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from typing import Annotated
 from sqlalchemy import text
