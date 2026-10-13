@@ -16,7 +16,7 @@ from utils.image_utils import upload_file_s3, delete_document_s3, create_presign
 from database import DbSession
 from utils.aws_utils import get_object
 from agents.structured_invoice_generator import structured_invoice_summary
-
+from pydantic import Field
 router = APIRouter()
 
 
@@ -289,3 +289,14 @@ async def get_document(
     document.file = presigned_url
 
     return document
+
+
+
+@router.post("/query")
+async def query_knowledge_base(
+        db : DbSession,
+        current_user : CurrentUser,
+        query: Annotated[str, Field(max_length=1000, title="Query for the knowledgebase.")],
+        client_id: int
+):
+    pass
