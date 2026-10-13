@@ -2,11 +2,15 @@ from contextlib import asynccontextmanager
 from typing import Callable
 from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from starlette.responses import JSONResponse
 from starlette.templating import Jinja2Templates
-
+from slowapi import Limiter
 from config import settings
 from database import DbSession
 from database import engine
+from rag.cache import Cache
 from rag.security import SecurityPipeline
 from routers import users, clients, documents
 from sqlalchemy import text
@@ -21,6 +25,7 @@ origins = ["http://localhost:5173"]
 # === Global instances (initialized at lifespan) ===
 security : SecurityPipeline = None
 metrics : MetricsCollector = None
+cache : Cache = None
 
 
 logger = get_logger()
@@ -28,7 +33,7 @@ logger = get_logger()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global security, metrics
+    global security, metrics, cache
 
     print("="*150)
     logger.info(msg="Starting Client Knowledge Hub...",extra={"extra_data":{
@@ -36,12 +41,35 @@ async def lifespan(_app: FastAPI):
         "primary_model":settings.primary_model,
         "tracing_enabled":settings.langsmith_tracing
     }})
+
+    # Initialize components
+    security = SecurityPipeline()
+    cache = Cache()
+    metrics = MetricsCollector()
+
+
+    logger.info(msg="All components initialized. Ready to server requests.")
     yield
+    print("="*150)
+    logger.info("Lifespan metrics: ", extra={"extra_data":metrics.summary})
     # Shutdown
+    print("="*150)
+    logger.info("Disposing database...")
     await engine.dispose()
+    logger.info("Database disposed SUCCESSFULLY!")
+    logger.info("Application shutting down.")
 
 
-app = FastAPI(lifespan=lifespan)
+# Rater limiter based on IP address of each request
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(lifespan=lifespan,
+              title="Client_Knowledge_Hub API",
+              description="RAG System based on pgvector extension over client documents with security, monitoring and caching layers for providing a production ready enviroment.",
+              version="1.0.0")
+
+app.state.limiter = limiter
+
 
 
 app.add_middleware(
@@ -69,6 +97,23 @@ async def add_security_headers(request: Request, call_next: Callable):
         )
 
     return response
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Handle rate limit exceed errors"""
+    logger.warning("Rate limit exceeded.",extra={
+        "extra_data":{
+            'client_ip':get_remote_address(request)
+        }
+    })
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error":"Rate limit exceeded.",
+            "detail":"Too many requests, please slow down."
+        }
+    )
+
 
 
 app.include_router(users.router, prefix="/api/users", tags=["users"])

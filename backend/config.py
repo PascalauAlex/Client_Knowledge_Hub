@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     postgres_db : str
     postgres_user : str
     postgres_password : str
+    redis_host : str
+    redis_port : str
+    redis_username : str
+    redis_password : SecretStr
 
     # Authentication
     access_token_expire_minutes: int = 200
@@ -55,6 +59,7 @@ class Settings(BaseSettings):
     # Application configs
     app_env : str = "development"
     langsmith_tracing : str = ""
+    rate_limit : str = "20/minute"
 
     @property
     def is_production(self)->bool:

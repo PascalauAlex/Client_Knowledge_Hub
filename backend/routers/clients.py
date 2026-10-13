@@ -1,3 +1,4 @@
+from langsmith import traceable
 from sqlalchemy.orm import joinedload
 import models
 from agents.rag import  generate_answer
@@ -5,6 +6,8 @@ from database import DbSession
 from fastapi import APIRouter, HTTPException
 from fastapi import status
 from sqlalchemy import select, delete as sql_delete
+from config import settings
+from main import limiter
 from models import Client
 from schemas import (
     ClientCreate,
@@ -198,6 +201,8 @@ async def get_client_documents(
 
 
 @router.post("/{client_id}/query")
+@limiter.limit(settings.rate_limit)
+@traceable(name="rag_endpoint")
 async def query_documents(
     db: DbSession, client_id: int, query: str, current_user: CurrentUser
 ):
