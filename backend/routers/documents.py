@@ -296,7 +296,7 @@ async def get_document(
 async def query_knowledge_base(
         db : DbSession,
         current_user : CurrentUser,
-        query: Annotated[str, Field(max_length=1000, title="Query for the knowledgebase.")],
-        client_id: int
+        query: Annotated[str, Field(max_length=1000, title="Query for the knowledgebase.", min_length=3)],
+        client_id: Annotated[int, Field(gt=0)]
 ):
     pass

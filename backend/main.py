@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from sqlalchemy.util import ellipses_string
 from starlette.responses import JSONResponse
 from starlette.templating import Jinja2Templates
 from slowapi import Limiter
@@ -39,7 +40,7 @@ async def lifespan(_app: FastAPI):
     logger.info(msg="Starting Client Knowledge Hub...",extra={"extra_data":{
         "environment":settings.app_env,
         "primary_model":settings.primary_model,
-        "tracing_enabled":settings.langsmith_tracing
+        "tracing_enabled": True if settings.langsmith_tracing else False
     }})
 
     # Initialize components
