@@ -7,7 +7,6 @@ from fastapi import APIRouter, HTTPException
 from fastapi import status
 from sqlalchemy import select, delete as sql_delete
 from config import settings
-from main import limiter
 from models import Client
 from schemas import (
     ClientCreate,
@@ -21,7 +20,6 @@ from utils.image_utils import create_presigned_url, delete_document_s3
 from botocore.exceptions import ClientError
 
 router = APIRouter(prefix="", tags=["clients"])
-
 
 @router.get(
     path="", response_model=list[ClientResponse], status_code=status.HTTP_200_OK
@@ -201,7 +199,7 @@ async def get_client_documents(
 
 
 @router.post("/{client_id}/query")
-@limiter.limit(settings.rate_limit)
+#@limiter.limit(settings.rate_limit)
 @traceable(name="rag_endpoint")
 async def query_documents(
     db: DbSession, client_id: int, query: str, current_user: CurrentUser
