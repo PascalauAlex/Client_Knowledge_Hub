@@ -149,3 +149,8 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[ChatSource] = Field(default_factory=list)
 
+class CacheStatsResponse(BaseModel):
+    cache_hits : Annotated[int,Field(ge=0)]
+    cache_misses : Annotated[int,Field(ge=0)]
+    cache_hit_ratio : Annotated[float | int,Field(le=1)]
+

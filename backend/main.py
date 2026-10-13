@@ -16,6 +16,7 @@ from rag.security import SecurityPipeline
 from routers import users, clients, documents
 from sqlalchemy import text
 from rag.monitoring import JSONFormatter, MetricsCollector, get_logger
+from schemas import CacheStatsResponse
 
 templates = Jinja2Templates(directory="templates")
 
@@ -139,3 +140,9 @@ async def default(request: Request):
         request=request,
         name="Home.html",
     )
+
+@app.get("/cache_stats",response_model=CacheStatsResponse, status_code=status.HTTP_200_OK)
+async def cache_stats():
+    stats = cache.get_stats
+    return stats
+

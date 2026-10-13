@@ -54,7 +54,9 @@ class Settings(BaseSettings):
     # AI Services
     llama_api_key: str | None = None
     primary_model: str = "gpt-4o-mini"
+    secondary_model : str = "gpt-4o"
     openai_key: str | None = ""
+    anthropic_key : str = ""
     max_retries : int = 3
 
     # Application configs
