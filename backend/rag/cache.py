@@ -70,11 +70,11 @@ class Cache:
 
     @property
     def get_stats(self) -> dict:
-        cache_hit_ratio = (self._hits / (self._hits + self._misses)  if self._hits > 0 else 0.0)
+        cache_hit_ratio = (self._hits / (self._hits + self._misses)) if self._hits > 0 else 0.0
         return {
             "cache_hits":self._hits,
             "cache_misses":self._misses,
-            "cache_hit_ratio":f"{cache_hit_ratio}"
+            "cache_hit_ratio":f"{round(cache_hit_ratio,2)}"
         }
 
 
