@@ -27,7 +27,7 @@ def get_redis_cache()-> redis.Redis:
 
 
 class Cache:
-    def __init__(self, ttl_seconds : int = 30):
+    def __init__(self, ttl_seconds : int = 3600):
         self.ttl = ttl_seconds
         self.redis_db = get_redis_cache()
         self._hits = 0
@@ -39,24 +39,29 @@ class Cache:
         normalized = query.lower().strip()
         return hashlib.sha256(normalized.encode()).hexdigest()
 
-    def get(self,query)-> Optional[str]:
+    def get(self,query)-> Optional[dict]:
         """ Check cache for similar queries """
         key = self._make_key(query)
         obj = self.redis_db.hgetall(key)
         query_response = obj.get('response')
+        sources = obj.get('sources')
         if query_response:
             self._hits += 1
-            return str(query_response)
+            return {
+                "answer":query_response,
+                "sources":sources
+            }
         else:
             self._misses += 1
             return None
 
-    def set(self,query: str, response: str):
+    def set(self,query: str, response: str, sources):
         """ Cache a response into Redis DB """
         key = self._make_key(query)
         self.redis_db.hset(key,mapping={
             'query': query,
             'response' : response,
+            'sources': sources
         },)
         self.redis_db.expire(name=key,time=self.ttl)
 
@@ -65,11 +70,11 @@ class Cache:
 
     @property
     def get_stats(self) -> dict:
-        cache_hit_ratio = self._hits / self._misses * 1000 if self._hits else 0.0
+        cache_hit_ratio = (self._hits / (self._hits + self._misses)  if self._hits > 0 else 0.0)
         return {
             "cache_hits":self._hits,
             "cache_misses":self._misses,
-            "cache_hit_ratio":cache_hit_ratio
+            "cache_hit_ratio":f"{cache_hit_ratio}"
         }
 
 

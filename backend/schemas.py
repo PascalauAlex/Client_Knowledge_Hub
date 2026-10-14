@@ -146,11 +146,18 @@ class ChatSource(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    answer: str
-    sources: list[ChatSource] = Field(default_factory=list)
+    answer: str = Field(description="Response of LLM based on the retrieved chunks. This is the final answer of agent.")
+    sources: Optional[list[ChatSource]] = Field(default_factory=list, description="Sources related to retrieved chunks, contains following fields"
+                                                                        "id:int, title: str, url:Optional[str]. This offers context and readability for the RAG System")
 
 class CacheStatsResponse(BaseModel):
-    cache_hits : Annotated[int,Field(ge=0)]
-    cache_misses : Annotated[int,Field(ge=0)]
-    cache_hit_ratio : Annotated[float | int,Field(le=1)]
+    cache_hits : int
+    cache_misses : int
+    cache_hit_ratio : float
+
+
+class AgentChatResponse(ChatResponse):
+    model_used : str
+    error: Optional[str]
+    security_notes : list
 

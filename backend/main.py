@@ -1,3 +1,4 @@
+import json
 from contextlib import asynccontextmanager
 from typing import Callable
 from fastapi import FastAPI, HTTPException, status, Request
@@ -17,7 +18,7 @@ from rag.security import SecurityPipeline
 from routers import users, clients, documents
 from sqlalchemy import text
 from rag.monitoring import JSONFormatter, MetricsCollector, get_logger
-from schemas import CacheStatsResponse
+from schemas import CacheStatsResponse, AgentChatResponse
 from utils.auth import CurrentUser
 from typing import Annotated
 from pydantic import Field
@@ -151,7 +152,7 @@ async def cache_stats():
     stats = cache.get_stats
     return stats
 
-@app.post("/query")
+@app.post("/query",)
 async def query_knowledge_base(
         db : DbSession,
         current_user : CurrentUser,
@@ -173,6 +174,7 @@ async def query_knowledge_base(
     #
     is_allowed, cleaned_text, security_notes = security.check_input(query)
 
+
     if not is_allowed:
         return {
             "security_notes": security_notes
@@ -180,23 +182,38 @@ async def query_knowledge_base(
 
     # 2. Cache lookup
     cached_response = cache.get(cleaned_text)
+
     if cached_response:
+        answer = cached_response["answer"]
+        cached_binary_sources = cached_response["sources"]
+        sources = json.loads(cached_binary_sources)
         return {
-            "response":cached_response,
+            "answer":answer,
+            "sources":sources,
             "security_notes":security_notes
         }
 
     # 3. LangGraph agent invoke
     agent = ProductionAgent()
     agent_result = await agent.invoke(query)
-    response = agent_result["response"]
+    answer = agent_result["answer"]
+    sources = agent_result["sources"]
     model_used = agent_result["model_used"]
     error = agent_result["error"]
 
-    cleaned_output, warning_list = security.check_output(response)
+
+    cleaned_output, warning_list = security.check_output(answer)
+    binary_sources = json.dumps(sources).encode('utf-8')
+    cache.set(cleaned_text,cleaned_output,binary_sources)
 
 
-    return cleaned_output
+    return {
+        "answer":cleaned_output,
+        "sources":sources,
+        "model_used":model_used,
+        "error":error,
+        "security_notes":security_notes,
+    }
 
 
 
