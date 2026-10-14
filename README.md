@@ -1,8 +1,8 @@
 # Client Knowledge Hub 🧠💼
-
+### PRODUCTION READY RAG SYSTEM
 A standalone microservice built with **FastAPI**, designed to aggregate, manage, and query client data (invoices, reports, contracts).
 
-While traditional CRMs handle structured data, this service acts as the **narrative memory** for a client and serves as the foundational ingestion layer for advanced AI integrations.
+##### While traditional CRMs handle structured data, this service acts as the **narrative memory** for a client and serves as the foundational ingestion layer for advanced AI integrations.
 
 ---
 
@@ -11,6 +11,10 @@ While traditional CRMs handle structured data, this service acts as the **narrat
 - **Decoupled Architecture:** Runs as a standalone service behind a REST API (auto-documented via OpenAPI), so any frontend or internal tool can consume it without sharing code or database access.
 - **Narrative CRUD:** Complete management of Clients and nested Documents categorized by type.
 - **JWT Authentication:** For human users (e.g., sales reps) accessing the system via a frontend client.
+- **RAG System:** For retrieving context with related sources for better understanding of client documents.
+- **Caching:** Faster retrievals for similar queries.
+- **Monitoring** Provides a better understandence over token usages, RAG process.
+- **Security:** Applied security for protecting the API against malicious actors.
 
 ---
 
@@ -56,6 +60,13 @@ The RAG flow is split into a clear ingestion path and a retrieval path.
 | Grounded LLM synthesis with citations | ✅ Implemented |
 | Additional document types (`contract`) & structured invoice handling | 🔜 Planned |
 | Approximate vector index (HNSW) for scale | 🔜 Planned |
+| LangGraph Agent Endpoint for RAG system                                       |    ✅ Implemented         |
+| Caching similar queries based on Redis                                                                         |    ✅ Implemented                           |
+|   Input and Output sanitization againts PI, PII, harmful content,                                                                                                       |    ✅ Implemented                                            |
+|   Monitoring using LangSmith, latency, cache_hit, token usage                                                                                                                                                                      |      ✅ Implemented                                                          |
+
+ 
+ 
 
 ---
 
@@ -65,7 +76,8 @@ Alongside RAG, the system parses unstructured files into typed data using **Llam
 
 - **Structured Invoice Parsing:** Uploaded invoices (PDFs, images) run through an agentic extraction pipeline that returns strictly typed JSON (Vendor, Invoice Date, Due Date, Items, Total), validated via **Pydantic** schemas.
 - **Automated Document Summaries:** Generates concise, structured summaries of complex client documents, turning lengthy PDFs into scannable insights.
-
+- **LangGraph** Agent that use already implemented RAG system for providing a structured answer with sources.
+- **Agent** Provide LLM fallback models in case for high availability.
 > **Note:** Invoices are handled by structured extraction rather than semantic RAG — their questions are typically aggregate ("what did we invoice this client in Q1?"), which structured fields answer better than similarity search.
 
 ---
@@ -83,14 +95,15 @@ Alongside RAG, the system parses unstructured files into typed data using **Llam
 
 - **Password Recovery:** Secure, time-limited token-based password reset flow delivered by email.
 - **Endpoint Testing:** Test coverage across REST endpoints (pytest + httpx) to validate auth flows and prevent regressions.
+- **Fallback LLM:** Prevents failures, agent is routed to a fallback model for better reliability 
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frameworks:** FastAPI (Python), React (TypeScript)
+- **Frameworks:** FastAPI (Python), Vue (TypeScript)
 - **Database:** PostgreSQL (SQLAlchemy ORM, async) + pgvector for the embedding store
-- **RAG:** pgvector similarity search, OpenAI `text-embedding-3-small`, LangChain text splitters (tiktoken)
+- **RAG:** pgvector similarity search, OpenAI `text-embedding-3-small`, LangChain text splitters (tiktoken), LangGraph(Graph agent)
 - **Structured Extraction:** LlamaIndex, LlamaCloud
 - **Authentication:** JWT
 - **Monitoring:** LangSmith
