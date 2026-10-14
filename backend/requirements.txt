@@ -15,6 +15,7 @@ asyncpg==0.31.0
 alembic==1.18.5
 pgvector==0.3.6
 redis
+psycopg[binary]
 
 # --- Auth ---
 PyJWT==2.13.0

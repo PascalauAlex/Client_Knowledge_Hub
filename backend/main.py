@@ -11,12 +11,17 @@ from slowapi import Limiter
 from config import settings
 from database import DbSession
 from database import engine
+from rag.agent import ProductionAgent
 from rag.cache import Cache
 from rag.security import SecurityPipeline
 from routers import users, clients, documents
 from sqlalchemy import text
 from rag.monitoring import JSONFormatter, MetricsCollector, get_logger
 from schemas import CacheStatsResponse
+from utils.auth import CurrentUser
+from typing import Annotated
+from pydantic import Field
+
 
 templates = Jinja2Templates(directory="templates")
 
@@ -145,4 +150,73 @@ async def default(request: Request):
 async def cache_stats():
     stats = cache.get_stats
     return stats
+
+@app.post("/query")
+async def query_knowledge_base(
+        db : DbSession,
+        current_user : CurrentUser,
+        query: Annotated[str, Field(max_length=1000, title="Query for the knowledgebase.", min_length=3)],
+        client_id: Annotated[int, Field(gt=0)]
+):
+    """
+    Main chat endpoint.
+
+    Flow:
+    1. Security check (injection + PII masking)
+    2. Cache lookup
+    3. LangGraph agent invoke (if cache miss)
+    4. Output validation
+    5. Cache store
+    6. Return response
+    """
+
+    #
+    is_allowed, cleaned_text, security_notes = security.check_input(query)
+
+    if not is_allowed:
+        return {
+            "security_notes": security_notes
+        }
+
+    # 2. Cache lookup
+    cached_response = cache.get(cleaned_text)
+    if cached_response:
+        return {
+            "response":cached_response,
+            "security_notes":security_notes
+        }
+
+    # 3. LangGraph agent invoke
+    agent = ProductionAgent()
+    agent_result = await agent.invoke(query)
+    response = agent_result["response"]
+    model_used = agent_result["model_used"]
+    error = agent_result["error"]
+
+    cleaned_output, warning_list = security.check_output(response)
+
+
+    return cleaned_output
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

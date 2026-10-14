@@ -40,6 +40,7 @@ class Cache:
         return hashlib.sha256(normalized.encode()).hexdigest()
 
     def get(self,query)-> Optional[str]:
+        """ Check cache for similar queries """
         key = self._make_key(query)
         obj = self.redis_db.hgetall(key)
         query_response = obj.get('response')

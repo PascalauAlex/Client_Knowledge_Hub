@@ -7,6 +7,7 @@ from starlette.concurrency import run_in_threadpool
 import models
 from agents.rag import DocumentLoader, ReportProcessor, embedd, save_embeddings
 from config import settings
+from rag.agent import ProductionAgent
 from schemas import DocumentResponse, DocumentSummaryResponse
 from utils.auth import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,8 @@ from database import DbSession
 from utils.aws_utils import get_object
 from agents.structured_invoice_generator import structured_invoice_summary
 from pydantic import Field
+
+
 router = APIRouter()
 
 
@@ -292,11 +295,4 @@ async def get_document(
 
 
 
-@router.post("/query")
-async def query_knowledge_base(
-        db : DbSession,
-        current_user : CurrentUser,
-        query: Annotated[str, Field(max_length=1000, title="Query for the knowledgebase.", min_length=3)],
-        client_id: Annotated[int, Field(gt=0)]
-):
-    pass
+

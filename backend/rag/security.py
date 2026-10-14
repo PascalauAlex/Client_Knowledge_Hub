@@ -178,7 +178,7 @@ class SecurityPipeline:
     def __init__(self):
         self.sanitize = InputSanitizer()
         self.pii_detector = PIIDetector()
-        self.output_validator = OutputValidator
+        self.output_validator = OutputValidator()
 
     @traceable(name="security_check_input")
     def check_input(self, text: str)-> tuple[bool, str, list[str]]:
@@ -212,7 +212,7 @@ class SecurityPipeline:
         Validate output before returning to client.
         Returns (cleaned_output, warnings_list)
         """
-        return self.output_validator.validate(text)
+        return self.output_validator.validate(output=text)
 
 
 

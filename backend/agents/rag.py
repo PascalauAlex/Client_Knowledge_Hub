@@ -2,7 +2,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Optional
 
 from langchain_community.document_loaders import (
     PyPDFLoader,
@@ -18,6 +18,7 @@ from sqlalchemy.orm import defer, joinedload
 
 import models
 from config import settings
+from database import DbSession, get_db
 from schemas import ChatResponse, ChatSource, ChatTurn
 from utils.documents_utils import ACCEPTED_MIME
 from utils.image_utils import create_presigned_url
@@ -153,9 +154,11 @@ async def save_embeddings(
 
 
 async def retrieve_chunks(
-    db: AsyncSession, query: str, client_id: int, top_k: int = 3
+     query: str, client_id: int, db: Optional[AsyncSession] , top_k: int = 3,
 ) -> list[models.DocumentChunk]:
     client = AsyncOpenAI(api_key=settings.openai_key)
+
+    # embedd query
     response = await client.embeddings.create(
         model="text-embedding-3-small", input=query
     )
@@ -175,6 +178,7 @@ async def retrieve_chunks(
 
     content = await db.execute(stmt)
     content = content.scalars().all()
+
 
     return list(content)
 
